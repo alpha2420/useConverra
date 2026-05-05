@@ -10,7 +10,7 @@ export async function POST(req:NextRequest) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }
 
-        const { ownerId, businessName, supportEmail, knowledge, whatsappNumber, agentInstructions, mediaLinks, aiOverrides } = await req.json()
+        const { ownerId, businessName, supportEmail, whatsappNumber, businessType, description, knowledge, faqs, policies, agentInstructions, mediaLinks, aiOverrides } = await req.json()
         if(!ownerId){
             return NextResponse.json(
                 {message:"owner id is required"},
@@ -26,7 +26,7 @@ export async function POST(req:NextRequest) {
          await connectDb() 
         const settings=await Settings.findOneAndUpdate(
             {ownerId},
-            {ownerId, businessName, supportEmail, knowledge, whatsappNumber, agentInstructions, mediaLinks, aiOverrides},
+            {ownerId, businessName, supportEmail, whatsappNumber, businessType, description, knowledge, faqs, policies, agentInstructions, mediaLinks, aiOverrides},
             {new:true,upsert:true}
         )
 

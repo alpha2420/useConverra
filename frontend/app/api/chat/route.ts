@@ -11,6 +11,7 @@ import { getCachedReply, setCachedReply } from "@backend/services/responseCache"
 import { preprocessMessage } from "@backend/services/preprocessMessage";
 import { getEmbedding, cosineSimilarity, rankAndFilterChunks } from "@shared/lib/embeddings";
 import KnowledgeChunk from "@backend/models/knowledge.model";
+import Location from "@backend/models/location.model";
 import { classifyIntent, getIntentReply } from "@shared/lib/intentClassifier";
 import { matchHardcodedIntent } from "@shared/lib/hardcodedRules";
 import User from "@backend/models/user.model";
@@ -271,7 +272,20 @@ export async function POST(req: NextRequest) {
             ? `\n\n--- AI OVERRIDES (STRICT RULES) ---\nIf the user's intent or meaning matches any of these topics, YOU MUST output the exact corresponding response.\n${(setting.aiOverrides as any).map((o: any) => `Topic/Intent: "${o.topic}" -> Exact Response: "${o.response}"`).join("\n")}`
             : "";
         
-        const KNOWLEDGE = `Core Info:\n${bizInfo}${mediaInfo}${overrideInfo}\n\nSearch Results:\n${retrievedKnowledge || "No specific matching facts found."}`;
+        const faqsInfo = (setting.faqs as any)?.length > 0 
+            ? `\n\n--- FAQs (STRICT TRUTH) ---\n${(setting.faqs as any).map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join("\n")}`
+            : "";
+
+        const policiesInfo = setting.policies 
+            ? `\n\n--- POLICIES (STRICT TRUTH) ---\nRefund: ${(setting.policies as any).refund || "N/A"}\nCancellation: ${(setting.policies as any).cancellation || "N/A"}\nGeneral: ${(setting.policies as any).general || "N/A"}`
+            : "";
+        
+        const locations = await Location.find({ ownerId }).lean();
+        const locationsInfo = locations.length > 0 
+            ? `\n\n--- LOCATIONS / BRANCHES ---\n${locations.map((l: any) => `Name: ${l.name}\nCity: ${l.city}\nAddress: ${l.address || "N/A"}\nPhone: ${l.phone || "N/A"}\nTimings: ${l.timings || "N/A"}\nDetails: ${l.description || "N/A"}`).join("\n\n")}`
+            : "";
+
+        const KNOWLEDGE = `Core Info:\n${bizInfo}${faqsInfo}${policiesInfo}${mediaInfo}${overrideInfo}${locationsInfo}\n\nSearch Results:\n${retrievedKnowledge || "No specific matching facts found."}`;
 
         // --- 5. Complexity Check (Intent + Subject) ---
         const complexIntents = ["services", "complaint", "unknown"];

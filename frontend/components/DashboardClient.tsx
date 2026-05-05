@@ -28,6 +28,12 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
     const [supportEmail, setSupportEmail] = useState("")
     const [knowledge, setKnowledge] = useState("")
     const [whatsappNumber, setWhatsappNumber] = useState("")
+    const [businessType, setBusinessType] = useState("")
+    const [description, setDescription] = useState("")
+    const [faqs, setFaqs] = useState<{question: string, answer: string}[]>([])
+    const [newFaqQ, setNewFaqQ] = useState("")
+    const [newFaqA, setNewFaqA] = useState("")
+    const [policies, setPolicies] = useState({refund: "", cancellation: "", general: ""})
     const [agentInstructions, setAgentInstructions] = useState("")
     const [mediaLinks, setMediaLinks] = useState<{name: string, url: string}[]>([])
     const [newLinkName, setNewLinkName] = useState("")
@@ -86,6 +92,10 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
                 supportEmail, 
                 knowledge, 
                 whatsappNumber, 
+                businessType,
+                description,
+                faqs,
+                policies,
                 agentInstructions,
                 mediaLinks,
                 aiOverrides 
@@ -107,7 +117,7 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
         const updated = mediaLinks.filter((_, i) => i !== idx);
         setMediaLinks(updated);
         await handleSettings({ 
-            ownerId, businessName, supportEmail, knowledge, whatsappNumber, agentInstructions, 
+            ownerId, businessName, supportEmail, knowledge, whatsappNumber, businessType, description, faqs, policies, agentInstructions, 
             mediaLinks: updated, aiOverrides 
         });
     };
@@ -116,7 +126,7 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
         const updated = aiOverrides.filter((_, i) => i !== idx);
         setAiOverrides(updated);
         await handleSettings({ 
-            ownerId, businessName, supportEmail, knowledge, whatsappNumber, agentInstructions, 
+            ownerId, businessName, supportEmail, knowledge, whatsappNumber, businessType, description, faqs, policies, agentInstructions, 
             mediaLinks, aiOverrides: updated 
         });
     };
@@ -127,6 +137,10 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
             setSupportEmail("");
             setKnowledge("");
             setWhatsappNumber("");
+            setBusinessType("");
+            setDescription("");
+            setFaqs([]);
+            setPolicies({refund: "", cancellation: "", general: ""});
             setAgentInstructions("");
             setMediaLinks([]);
             setAiOverrides([]);
@@ -137,6 +151,10 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
                 supportEmail: "",
                 knowledge: "",
                 whatsappNumber: "",
+                businessType: "",
+                description: "",
+                faqs: [],
+                policies: {refund: "", cancellation: "", general: ""},
                 agentInstructions: "",
                 mediaLinks: [],
                 aiOverrides: []
@@ -155,6 +173,10 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
                         setSupportEmail(result.data.supportEmail || "")
                         setKnowledge(result.data.knowledge || "")
                         setWhatsappNumber(result.data.whatsappNumber || "")
+                        setBusinessType(result.data.businessType || "")
+                        setDescription(result.data.description || "")
+                        setFaqs(result.data.faqs || [])
+                        setPolicies(result.data.policies || {refund: "", cancellation: "", general: ""})
                         setAgentInstructions(result.data.agentInstructions || "")
                         setMediaLinks(result.data.mediaLinks || [])
                         setAiOverrides(result.data.aiOverrides || [])
@@ -335,6 +357,10 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
                     supportEmail,
                     knowledge: updatedKnowledge,
                     whatsappNumber,
+                    businessType,
+                    description,
+                    faqs,
+                    policies,
                     mediaLinks
                 });
                 setSaved(true);
@@ -518,52 +544,147 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
                                 <input type="text" className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='Business Name' value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
                                 <input type="text" className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='Support Email' value={supportEmail} onChange={(e) => setSupportEmail(e.target.value)} />
                                 <input type="text" className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='WhatsApp Number (e.g. 15551234567)' value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} />
+                                <select className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80 bg-white' value={businessType} onChange={(e) => setBusinessType(e.target.value)}>
+                                    <option value="" disabled>Select Business Type</option>
+                                    <option value="Ecommerce">Ecommerce</option>
+                                    <option value="Service">Service</option>
+                                    <option value="SaaS">SaaS</option>
+                                    <option value="Agency">Agency</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <textarea className='w-full h-24 rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='Description' value={description} onChange={(e) => setDescription(e.target.value)} />
                             </div>
                         </div>
                         
                             )}
                             {currentStep === 2 && (
                                 <div className='mb-10'>
-                                    <div className='flex items-center justify-between mb-1'>
-                                        <h1 className='text-xl font-semibold'>Step 2: Knowledge Base <span className='text-red-500'>*</span></h1>
-                                        {knowledge.trim() && (
-                                            <button 
-                                                onClick={async () => { 
-                                                    if(confirm("Clear entire Knowledge Base and delete from database?")) {
-                                                        setKnowledge("");
-                                                        await handleSettings({
-                                                            ownerId, businessName, supportEmail, knowledge: "", whatsappNumber, agentInstructions, mediaLinks, aiOverrides
-                                                        });
+                                    <h1 className='text-xl font-semibold mb-1'>Step 2: Knowledge Base <span className='text-red-500'>*</span></h1>
+                                    <p className='text-sm text-zinc-500 mb-6'>Provide structured facts and unstructured documents.</p>
+
+                                    {/* SECTION A: FAQs */}
+                                    <div className='mb-8 p-6 bg-white border border-zinc-200 rounded-2xl shadow-sm'>
+                                        <h2 className='text-lg font-bold mb-2'>Section A: FAQs (Structured)</h2>
+                                        <p className='text-xs text-zinc-500 mb-4'>Add exact Question & Answer pairs for 100% accuracy.</p>
+                                        
+                                        <div className='space-y-3 mb-4'>
+                                            {faqs.map((faq, idx) => (
+                                                <div key={idx} className='bg-zinc-50 border border-zinc-200 rounded-lg p-3'>
+                                                    <div className='flex items-start justify-between'>
+                                                        <div className='pr-4'>
+                                                            <p className='text-xs font-bold text-zinc-500'>Q: {faq.question}</p>
+                                                            <p className='text-sm text-zinc-800 mt-1'>A: {faq.answer}</p>
+                                                        </div>
+                                                        <div className='flex gap-2'>
+                                                            <button 
+                                                                onClick={() => {
+                                                                    setNewFaqQ(faq.question);
+                                                                    setNewFaqA(faq.answer);
+                                                                    setFaqs(prev => prev.filter((_, i) => i !== idx));
+                                                                }}
+                                                                className='text-zinc-400 hover:text-zinc-600 text-sm font-medium px-2'
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button onClick={() => {
+                                                                const updated = faqs.filter((_, i) => i !== idx);
+                                                                setFaqs(updated);
+                                                                handleSettings({ ownerId, businessName, supportEmail, whatsappNumber, businessType, description, faqs: updated, policies, knowledge, agentInstructions, mediaLinks, aiOverrides });
+                                                            }} className='text-red-500 hover:text-red-700 text-sm font-medium px-2'>
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {faqs.length === 0 && (
+                                                <p className='text-xs text-zinc-400 italic'>No FAQs added yet.</p>
+                                            )}
+                                        </div>
+
+                                        <div className='space-y-2'>
+                                            <input type="text" placeholder="Question (e.g. What time do you open?)" className='w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' value={newFaqQ} onChange={e => setNewFaqQ(e.target.value)} />
+                                            <textarea placeholder="Exact Answer (e.g. We open at 10 AM to 9 PM)" className='w-full h-16 rounded-lg border border-zinc-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' value={newFaqA} onChange={e => setNewFaqA(e.target.value)} />
+                                            <button
+                                                onClick={() => {
+                                                    if(newFaqQ.trim() && newFaqA.trim()) {
+                                                        const updated = [...faqs, {question: newFaqQ.trim(), answer: newFaqA.trim()}];
+                                                        setFaqs(updated);
+                                                        setNewFaqQ("");
+                                                        setNewFaqA("");
+                                                        // Automatically save
+                                                        handleSettings({ ownerId, businessName, supportEmail, whatsappNumber, businessType, description, faqs: updated, policies, knowledge, agentInstructions, mediaLinks, aiOverrides });
                                                     }
                                                 }}
-                                                className='text-[10px] font-bold text-red-500 hover:text-red-700 uppercase tracking-widest'
+                                                className='w-full px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 transition'
                                             >
-                                                Clear All
+                                                + Add FAQ
                                             </button>
-                                        )}
+                                        </div>
                                     </div>
-                                    <p className='text-sm text-zinc-500 mb-4'>Add FAQs, policies, delivery info, refunds, or upload PDFs.</p>
-                                    <div className='space-y-4'>
-                                        <textarea className='w-full h-54 rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80 font-mono' placeholder={`Example:\n• Refund policy: 7 days return available\n• Delivery time: 3–5 working days\n• Cash on Delivery available\n• Support hours`} onChange={(e) => setKnowledge(e.target.value)} value={knowledge} />
+
+                                    {/* SECTION B: Policies */}
+                                    <div className='mb-8 p-6 bg-white border border-zinc-200 rounded-2xl shadow-sm'>
+                                        <h2 className='text-lg font-bold mb-2'>Section B: Policies (Fields)</h2>
+                                        <p className='text-xs text-zinc-500 mb-4'>Provide strict rules that AI must follow for returns, cancellations, etc.</p>
+                                        <div className='space-y-4'>
+                                            <div>
+                                                <label className='block text-xs font-semibold text-zinc-600 mb-1'>Refund Policy</label>
+                                                <textarea className='w-full h-16 rounded-lg border border-zinc-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='E.g., No refunds after 7 days...' value={policies.refund} onChange={e => setPolicies({...policies, refund: e.target.value})} onBlur={() => handleSettings()} />
+                                            </div>
+                                            <div>
+                                                <label className='block text-xs font-semibold text-zinc-600 mb-1'>Cancellation Policy</label>
+                                                <textarea className='w-full h-16 rounded-lg border border-zinc-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='E.g., Cancellations allowed up to 24 hours before...' value={policies.cancellation} onChange={e => setPolicies({...policies, cancellation: e.target.value})} onBlur={() => handleSettings()} />
+                                            </div>
+                                            <div>
+                                                <label className='block text-xs font-semibold text-zinc-600 mb-1'>General Policies</label>
+                                                <textarea className='w-full h-16 rounded-lg border border-zinc-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='E.g., Age restrictions, ID requirements...' value={policies.general} onChange={e => setPolicies({...policies, general: e.target.value})} onBlur={() => handleSettings()} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* SECTION C: Upload PDF & General Knowledge */}
+                                    <div className='p-6 bg-zinc-50 border border-zinc-200 rounded-2xl shadow-sm'>
+                                        <div className='flex items-center justify-between mb-2'>
+                                            <h2 className='text-lg font-bold'>Section C: Document Knowledge (RAG)</h2>
+                                            {knowledge.trim() && (
+                                                <button 
+                                                    onClick={async () => { 
+                                                        if(confirm("Clear entire Document Knowledge Base and delete from database?")) {
+                                                            setKnowledge("");
+                                                            await handleSettings({
+                                                                ownerId, businessName, supportEmail, whatsappNumber, businessType, description, faqs, policies, knowledge: "", agentInstructions, mediaLinks, aiOverrides
+                                                            });
+                                                        }
+                                                    }}
+                                                    className='text-[10px] font-bold text-red-500 hover:text-red-700 uppercase tracking-widest'
+                                                >
+                                                    Clear Documents
+                                                </button>
+                                            )}
+                                        </div>
+                                        <p className='text-xs text-zinc-500 mb-4'>Upload PDFs or paste long descriptions. AI will search this when FAQs don't match.</p>
                                         
-                                        <div className='flex items-center gap-3'>
-                                            <label className='cursor-pointer flex-shrink-0'>
-                                                <div className={`px-4 py-2 border border-zinc-300 rounded-lg text-sm transition ${uploadingPdf ? 'bg-zinc-100 text-zinc-400' : 'bg-white hover:bg-zinc-50 text-zinc-700'}`}>
-                                                    {uploadingPdf ? 'Scraping PDF...' : ' Upload PDF'}
-                                                </div>
-                                                <input type="file" accept="application/pdf" className='hidden' onChange={handleFileUpload} disabled={uploadingPdf} />
-                                            </label>
+                                        <div className='space-y-4'>
+                                            <textarea className='w-full h-32 rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80 font-mono bg-white' placeholder={`Paste general information here...`} onChange={(e) => setKnowledge(e.target.value)} value={knowledge} onBlur={() => handleSettings()} />
+                                            
+                                            <div className='flex flex-wrap items-center gap-3'>
+                                                <label className='cursor-pointer flex-shrink-0'>
+                                                    <div className={`px-4 py-2 border border-zinc-300 rounded-lg text-sm transition font-medium ${uploadingPdf ? 'bg-zinc-100 text-zinc-400' : 'bg-white hover:bg-zinc-50 text-zinc-700 shadow-sm'}`}>
+                                                        {uploadingPdf ? 'Scraping PDF...' : '📄 Upload PDF'}
+                                                    </div>
+                                                    <input type="file" accept="application/pdf" className='hidden' onChange={handleFileUpload} disabled={uploadingPdf} />
+                                                </label>
 
-                                            <button 
-                                                type="button"
-                                                onClick={handleRefineKnowledge}
-                                                disabled={refining || !knowledge.trim()}
-                                                className={`px-4 py-2 border border-emerald-200 rounded-lg text-sm font-medium transition ${refining ? 'bg-emerald-50 text-emerald-400' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'}`}
-                                            >
-                                                {refining ? 'Restructuring...' : 'AI Refine (Beta)'}
-                                            </button>
-
-                                            <span className='text-xs text-zinc-400 max-w-[150px]'>Structure messy text into Q&A for better accuracy.</span>
+                                                <button 
+                                                    type="button"
+                                                    onClick={handleRefineKnowledge}
+                                                    disabled={refining || !knowledge.trim()}
+                                                    className={`px-4 py-2 border border-emerald-200 rounded-lg text-sm font-medium transition ${refining ? 'bg-emerald-50 text-emerald-400' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'}`}
+                                                >
+                                                    {refining ? 'Restructuring...' : 'AI Refine Text'}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -785,26 +906,35 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
                                 </button>
                             )}
                             
-                            <div className='flex items-center gap-4'>
+                            <div className='flex items-center gap-3'>
                                 {saved && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm font-medium text-emerald-600">✓ Saved</motion.span>}
                                 
+                                {/* Skip button — only on optional steps 2–5 */}
+                                {currentStep > 1 && currentStep < 6 && (
+                                    <button
+                                        onClick={() => setCurrentStep(prev => Math.min(6, prev + 1))}
+                                        className='px-5 py-2.5 rounded-xl border border-zinc-300 text-sm font-medium text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 transition'
+                                    >
+                                        Skip
+                                    </button>
+                                )}
+
                                 {currentStep < 6 ? (
                                     <button 
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (currentStep === 1) {
                                                 if (!businessName.trim() || !supportEmail.trim() || !whatsappNumber.trim()) {
                                                     alert("Please fill out all Business Details (Name, Email, WhatsApp) to continue.");
                                                     return;
                                                 }
                                             }
-                                            if (currentStep === 2) {
-                                                if (!knowledge.trim()) {
-                                                    alert("Please add at least some text to your Knowledge Base so the AI knows how to answer.");
-                                                    return;
-                                                }
-                                            }
-                                            handleSettings();
+                                            // Advance step immediately so UI never feels frozen
                                             setCurrentStep(prev => Math.min(6, prev + 1));
+                                            try {
+                                                await handleSettings();
+                                            } catch (_) {
+                                                // Save failed silently — data is preserved in state
+                                            }
                                         }}
                                         disabled={loading}
                                         className='px-6 py-2.5 rounded-xl bg-black text-white text-sm font-medium hover:bg-zinc-800 transition disabled:opacity-60'

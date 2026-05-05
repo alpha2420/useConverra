@@ -9,17 +9,16 @@ export async function getEmbedding(text: string): Promise<number[]> {
         throw new Error("GEMINI_API_KEY is missing from environment variables.");
     }
     
-    // Using v1beta as the models seem to be restricted to this version for this key
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-005:embedContent?key=${env.GEMINI_API_KEY}`;
+    // text-embedding-004 is the stable, widely available Gemini embedding model
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${env.GEMINI_API_KEY}`;
     
     try {
         const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: "models/text-embedding-005",
-                content: { parts: [{ text: text.replace(/\n/g, " ") }] },
-                outputDimensionality: 3072
+                model: "models/text-embedding-004",
+                content: { parts: [{ text: text.replace(/\n/g, " ") }] }
             })
         });
 

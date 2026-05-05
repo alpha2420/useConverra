@@ -220,7 +220,15 @@ async function startClient(ownerId: string) {
             // Truncate knowledge to 800 chars max to avoid large context
             const knowledgeTrimmed = (setting.knowledge || "not provided").slice(0, 800);
 
-            const KNOWLEDGE = `name:${setting.businessName || ""} | email:${setting.supportEmail || ""} | wa:${setting.whatsappNumber || ""} | info:${knowledgeTrimmed}${MEDIA_LINKS_CONTEXT}${overrideInfo}`;
+            const faqsContext = (setting.faqs as any)?.length > 0 
+                ? `\n\n--- FAQs (STRICT TRUTH) ---\n${(setting.faqs as any).map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join("\n")}`
+                : "";
+
+            const policiesContext = setting.policies 
+                ? `\n\n--- POLICIES (STRICT TRUTH) ---\nRefund: ${(setting.policies as any).refund || "N/A"}\nCancellation: ${(setting.policies as any).cancellation || "N/A"}\nGeneral: ${(setting.policies as any).general || "N/A"}`
+                : "";
+
+            const KNOWLEDGE = `name:${setting.businessName || ""} | email:${setting.supportEmail || ""} | wa:${setting.whatsappNumber || ""} | info:${knowledgeTrimmed}${faqsContext}${policiesContext}${MEDIA_LINKS_CONTEXT}${overrideInfo}`;
 
             const AGENT_INSTRUCTIONS = setting.agentInstructions
                 ? `\nSPECIAL INSTRUCTIONS FROM THE BUSINESS OWNER (follow strictly):\n${setting.agentInstructions}\n`
