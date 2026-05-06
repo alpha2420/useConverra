@@ -169,7 +169,7 @@ async function startClient(ownerId: string) {
             // Guard: text only
             if (msg.type !== 'chat') {
                 await msg.reply(
-                    "I'm an AI assistant and currently cannot process voice notes or images. Please type your question. 🙏"
+                    "Hi! I can't process voice notes or images right now. Please type your message so I can help you! 🙏"
                 );
                 return;
             }
@@ -420,7 +420,7 @@ Q: ${cleanMessage}`;
             }
 
             if (!aiSuccess) {
-                await msg.reply("Hi! Our support assistant is temporarily unavailable. Please try again shortly. 🙏");
+                await msg.reply("Hi! I'm having a bit of trouble connecting to our system right now. Please try again in a moment! 🙏");
                 return;
             }
 
