@@ -40,7 +40,7 @@ TEXT TO REFINE:
 ${text}`;
 
         const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
-        const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-pro"];
+        const modelsToTry = ["gemini-2.0-flash", "gemini-2.0-pro"];
         let refinedText = "";
         let lastError: any = null;
 
