@@ -1,18 +1,19 @@
 import connectDb from "@shared/lib/db";
 import UnansweredQuestion from "@backend/models/unanswered-question.model";
 import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@shared/lib/getSession";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
     try {
-        const ownerId = req.nextUrl.searchParams.get("ownerId");
-        if (!ownerId) {
-            return NextResponse.json(
-                { message: "ownerId is required" },
-                { status: 400 }
-            );
+        const session = await getSession();
+        if (!session || !session.user) {
+            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }
+
+        // Always use session ownerId — never trust client-supplied ownerId param
+        const ownerId = session.user.id;
 
         await connectDb();
         const questions = await UnansweredQuestion.find({ ownerId, status: "unanswered" })

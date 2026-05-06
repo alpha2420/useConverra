@@ -2,13 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { getWhatsAppClient, getWhatsAppStatus } from "@backend/services/whatsapp";
 import connectDb from "@shared/lib/db";
 import WhatsappStatus from "@backend/models/whatsapp-status.model";
+import { getSession } from "@shared/lib/getSession";
 
 export async function POST(req: NextRequest) {
     try {
+        const session = await getSession();
+        if (!session || !session.user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const { ownerId } = await req.json();
         
         if (!ownerId) {
             return NextResponse.json({ error: "Missing ownerId" }, { status: 400 });
+        }
+
+        // Prevent user from reading another user's QR/status
+        if (session.user.id !== ownerId) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
         await connectDb();

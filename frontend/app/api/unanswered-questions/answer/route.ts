@@ -3,9 +3,15 @@ import UnansweredQuestion from "@backend/models/unanswered-question.model";
 import Settings from "@backend/models/settings.model";
 import PendingMessage from "@backend/models/pending-message.model";
 import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@shared/lib/getSession";
 
 export async function POST(req: NextRequest) {
     try {
+        const session = await getSession();
+        if (!session || !session.user) {
+            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+        }
+
         const { questionId, ownerId, answer } = await req.json();
 
         if (!questionId || !ownerId || !answer) {
@@ -13,6 +19,11 @@ export async function POST(req: NextRequest) {
                 { message: "questionId, ownerId, and answer are required" },
                 { status: 400 }
             );
+        }
+
+        // Prevent writing to another user's knowledge base
+        if (session.user.id !== ownerId) {
+            return NextResponse.json({ message: "Forbidden" }, { status: 403 });
         }
 
         await connectDb();

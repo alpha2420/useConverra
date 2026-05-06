@@ -1,16 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@shared/lib/db";
 import WhatsappStatus from "@backend/models/whatsapp-status.model";
+import { getSession } from "@shared/lib/getSession";
 
 // Explicitly creates a new WhatsApp session intent in the database.
 // This is separate from the polling route so that a reconnect is only triggered
 // by a deliberate user action, not automatically on every status poll.
 export async function POST(req: NextRequest) {
     try {
+        const session = await getSession();
+        if (!session || !session.user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const { ownerId } = await req.json();
 
         if (!ownerId) {
             return NextResponse.json({ error: "Missing ownerId" }, { status: 400 });
+        }
+
+        // Prevent user from connecting another user's WhatsApp
+        if (session.user.id !== ownerId) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
         await connectDb();
