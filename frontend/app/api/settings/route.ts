@@ -10,7 +10,13 @@ export async function POST(req:NextRequest) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }
 
-        const { ownerId, businessName, supportEmail, whatsappNumber, businessType, description, knowledge, faqs, policies, agentInstructions, mediaLinks, aiOverrides } = await req.json()
+        const {
+            ownerId, businessName, businessType, description,
+            location, workingHours, website, services,
+            supportEmail, whatsappNumber, supportNumber, emergencyContact,
+            knowledge, faqs, policies, agentInstructions, mediaLinks, aiOverrides
+        } = await req.json()
+
         if(!ownerId){
             return NextResponse.json(
                 {message:"owner id is required"},
@@ -26,7 +32,12 @@ export async function POST(req:NextRequest) {
          await connectDb() 
         const settings=await Settings.findOneAndUpdate(
             {ownerId},
-            {ownerId, businessName, supportEmail, whatsappNumber, businessType, description, knowledge, faqs, policies, agentInstructions, mediaLinks, aiOverrides},
+            {
+                ownerId, businessName, businessType, description,
+                location, workingHours, website, services,
+                supportEmail, whatsappNumber, supportNumber, emergencyContact,
+                knowledge, faqs, policies, agentInstructions, mediaLinks, aiOverrides
+            },
             {new:true,upsert:true}
         )
 
@@ -41,7 +52,7 @@ export async function POST(req:NextRequest) {
 
                 // Check if it's Elite Structured format or raw text
                 const isElite = knowledge.includes("CATEGORY:") && knowledge.includes("Q:");
-                const chunks = isElite ? parseEliteChunks(knowledge) : chunkText(knowledge, 300, 50).map(t => ({ text: t }));
+                const chunks = isElite ? parseEliteChunks(knowledge) : chunkText(knowledge, 400, 50).map(t => ({ text: t }));
 
                 const chunkDocs = await Promise.all(
                     chunks.map(async (item: any) => {

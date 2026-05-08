@@ -25,15 +25,26 @@ interface UnansweredQuestion {
 function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, userName?: string, userEmail?: string }) {
     const navigate = useRouter()
     const [businessName, setBusinessName] = useState("")
-    const [supportEmail, setSupportEmail] = useState("")
-    const [knowledge, setKnowledge] = useState("")
-    const [whatsappNumber, setWhatsappNumber] = useState("")
     const [businessType, setBusinessType] = useState("")
     const [description, setDescription] = useState("")
+    const [location, setLocation] = useState("")
+    const [workingHours, setWorkingHours] = useState("")
+    const [website, setWebsite] = useState("")
+    // Services
+    const [services, setServices] = useState<{name:string,description:string,price:string,duration:string,availability:string}[]>([])
+    const [newService, setNewService] = useState({name:"",description:"",price:"",duration:"",availability:""})
+    // Knowledge
+    const [knowledge, setKnowledge] = useState("")
     const [faqs, setFaqs] = useState<{question: string, answer: string}[]>([])
     const [newFaqQ, setNewFaqQ] = useState("")
     const [newFaqA, setNewFaqA] = useState("")
-    const [policies, setPolicies] = useState({refund: "", cancellation: "", general: ""})
+    const [policies, setPolicies] = useState({refund:"",cancellation:"",delivery:"",bookingRules:"",returnPolicy:"",general:""})
+    // Support Escalation
+    const [supportEmail, setSupportEmail] = useState("")
+    const [whatsappNumber, setWhatsappNumber] = useState("")
+    const [supportNumber, setSupportNumber] = useState("")
+    const [emergencyContact, setEmergencyContact] = useState("")
+    // Agent / Media / Overrides
     const [agentInstructions, setAgentInstructions] = useState("")
     const [mediaLinks, setMediaLinks] = useState<{name: string, url: string}[]>([])
     const [newLinkName, setNewLinkName] = useState("")
@@ -83,23 +94,18 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
     const [wsLoading, setWsLoading] = useState(false)
     const [isDisconnectDialogOpen, setIsDisconnectDialogOpen] = useState(false)
 
+    const buildSettingsPayload = () => ({
+        ownerId,
+        businessName, businessType, description,
+        location, workingHours, website, services,
+        supportEmail, whatsappNumber, supportNumber, emergencyContact,
+        knowledge, faqs, policies, agentInstructions, mediaLinks, aiOverrides
+    })
+
     const handleSettings = async (manualData?: any) => {
         setLoading(true)
         try {
-            const data = manualData || { 
-                ownerId, 
-                businessName, 
-                supportEmail, 
-                knowledge, 
-                whatsappNumber, 
-                businessType,
-                description,
-                faqs,
-                policies,
-                agentInstructions,
-                mediaLinks,
-                aiOverrides 
-            }
+            const data = manualData || buildSettingsPayload()
             const result = await axios.post("/api/settings", data)
             console.log(result.data)
             setLoading(false)
@@ -116,48 +122,30 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
     const deleteMediaLink = async (idx: number) => {
         const updated = mediaLinks.filter((_, i) => i !== idx);
         setMediaLinks(updated);
-        await handleSettings({ 
-            ownerId, businessName, supportEmail, knowledge, whatsappNumber, businessType, description, faqs, policies, agentInstructions, 
-            mediaLinks: updated, aiOverrides 
-        });
+        await handleSettings({ ...buildSettingsPayload(), mediaLinks: updated });
     };
 
     const deleteOverride = async (idx: number) => {
         const updated = aiOverrides.filter((_, i) => i !== idx);
         setAiOverrides(updated);
-        await handleSettings({ 
-            ownerId, businessName, supportEmail, knowledge, whatsappNumber, businessType, description, faqs, policies, agentInstructions, 
-            mediaLinks, aiOverrides: updated 
-        });
+        await handleSettings({ ...buildSettingsPayload(), aiOverrides: updated });
     };
 
     const resetAllData = async () => {
         if (confirm("⚠️ DANGER: This will permanently delete ALL your chatbot data from the database. Are you sure?")) {
-            setBusinessName("");
-            setSupportEmail("");
-            setKnowledge("");
-            setWhatsappNumber("");
-            setBusinessType("");
-            setDescription("");
-            setFaqs([]);
-            setPolicies({refund: "", cancellation: "", general: ""});
-            setAgentInstructions("");
-            setMediaLinks([]);
-            setAiOverrides([]);
-            
+            setBusinessName(""); setBusinessType(""); setDescription("");
+            setLocation(""); setWorkingHours(""); setWebsite(""); setServices([]);
+            setSupportEmail(""); setWhatsappNumber(""); setSupportNumber(""); setEmergencyContact("");
+            setKnowledge(""); setFaqs([]);
+            setPolicies({refund:"",cancellation:"",delivery:"",bookingRules:"",returnPolicy:"",general:""});
+            setAgentInstructions(""); setMediaLinks([]); setAiOverrides([]);
             await handleSettings({
-                ownerId,
-                businessName: "",
-                supportEmail: "",
-                knowledge: "",
-                whatsappNumber: "",
-                businessType: "",
-                description: "",
-                faqs: [],
-                policies: {refund: "", cancellation: "", general: ""},
-                agentInstructions: "",
-                mediaLinks: [],
-                aiOverrides: []
+                ownerId, businessName:"", businessType:"", description:"",
+                location:"", workingHours:"", website:"", services:[],
+                supportEmail:"", whatsappNumber:"", supportNumber:"", emergencyContact:"",
+                knowledge:"", faqs:[],
+                policies:{refund:"",cancellation:"",delivery:"",bookingRules:"",returnPolicy:"",general:""},
+                agentInstructions:"", mediaLinks:[], aiOverrides:[]
             });
             alert("All data has been deleted from everywhere.");
         }
@@ -169,17 +157,24 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
                 try {
                     const result = await axios.post("/api/settings/get", { ownerId })
                     if (result.data) {
-                        setBusinessName(result.data.businessName || "")
-                        setSupportEmail(result.data.supportEmail || "")
-                        setKnowledge(result.data.knowledge || "")
-                        setWhatsappNumber(result.data.whatsappNumber || "")
-                        setBusinessType(result.data.businessType || "")
-                        setDescription(result.data.description || "")
-                        setFaqs(result.data.faqs || [])
-                        setPolicies(result.data.policies || {refund: "", cancellation: "", general: ""})
-                        setAgentInstructions(result.data.agentInstructions || "")
-                        setMediaLinks(result.data.mediaLinks || [])
-                        setAiOverrides(result.data.aiOverrides || [])
+                        const d = result.data
+                        setBusinessName(d.businessName || "")
+                        setBusinessType(d.businessType || "")
+                        setDescription(d.description || "")
+                        setLocation(d.location || "")
+                        setWorkingHours(d.workingHours || "")
+                        setWebsite(d.website || "")
+                        setServices(d.services || [])
+                        setSupportEmail(d.supportEmail || "")
+                        setWhatsappNumber(d.whatsappNumber || "")
+                        setSupportNumber(d.supportNumber || "")
+                        setEmergencyContact(d.emergencyContact || "")
+                        setKnowledge(d.knowledge || "")
+                        setFaqs(d.faqs || [])
+                        setPolicies(d.policies || {refund:"",cancellation:"",delivery:"",bookingRules:"",returnPolicy:"",general:""})
+                        setAgentInstructions(d.agentInstructions || "")
+                        setMediaLinks(d.mediaLinks || [])
+                        setAiOverrides(d.aiOverrides || [])
                     }
                 } catch (error) {
                     console.log(error)
@@ -187,7 +182,6 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
             }
             handleGetDetails()
             fetchUnansweredQuestions()
-            // Initial poll for WhatsApp status
             pollWhatsAppStatus()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -537,25 +531,116 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
 
                         <div className='min-h-[340px]'>
                             {currentStep === 1 && (
-                                <div className='mb-10'>
-                                    <h1 className='text-xl font-semibold mb-1'>Step 1: Business Details <span className='text-red-500'>*</span></h1>
-                                    <p className='text-sm text-zinc-500 mb-6'>Basic information about your business.</p>
-                            <div className='space-y-4'>
-                                <input type="text" className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='Business Name' value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
-                                <input type="text" className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='Support Email' value={supportEmail} onChange={(e) => setSupportEmail(e.target.value)} />
-                                <input type="text" className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='WhatsApp Number (e.g. 15551234567)' value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} />
-                                <select className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80 bg-white' value={businessType} onChange={(e) => setBusinessType(e.target.value)}>
-                                    <option value="" disabled>Select Business Type</option>
-                                    <option value="Ecommerce">Ecommerce</option>
-                                    <option value="Service">Service</option>
-                                    <option value="SaaS">SaaS</option>
-                                    <option value="Agency">Agency</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                                <textarea className='w-full h-24 rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='Description' value={description} onChange={(e) => setDescription(e.target.value)} />
-                            </div>
-                        </div>
-                        
+                                <div className='mb-10 space-y-8'>
+
+                                    {/* --- SECTION 1: Basic Information --- */}
+                                    <div className='p-5 bg-white border border-zinc-200 rounded-2xl shadow-sm'>
+                                        <h2 className='text-base font-bold text-zinc-900 mb-1'>Basic Information <span className='text-red-500'>*</span></h2>
+                                        <p className='text-xs text-zinc-500 mb-4'>Core details about your business.</p>
+                                        <div className='space-y-3'>
+                                            <input type="text" className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='Business Name *' value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
+                                            <select className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80 bg-white' value={businessType} onChange={(e) => setBusinessType(e.target.value)}>
+                                                <option value="" disabled>Select Business Type</option>
+                                                <option value="Ecommerce">Ecommerce</option>
+                                                <option value="Restaurant">Restaurant</option>
+                                                <option value="Salon & Beauty">Salon & Beauty</option>
+                                                <option value="Healthcare">Healthcare</option>
+                                                <option value="Education">Education</option>
+                                                <option value="Real Estate">Real Estate</option>
+                                                <option value="Service">Service</option>
+                                                <option value="SaaS">SaaS</option>
+                                                <option value="Agency">Agency</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                            <textarea className='w-full h-20 rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='Short Description (what your business does)' value={description} onChange={(e) => setDescription(e.target.value)} />
+                                            <input type="text" className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='Location / Address' value={location} onChange={(e) => setLocation(e.target.value)} />
+                                            <input type="text" className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='Working Hours (e.g. Mon–Sat 9AM–8PM)' value={workingHours} onChange={(e) => setWorkingHours(e.target.value)} />
+                                            <input type="url" className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='Website (optional, e.g. https://yourbusiness.com)' value={website} onChange={(e) => setWebsite(e.target.value)} />
+                                        </div>
+                                    </div>
+
+                                    {/* --- SECTION 2: Services / Products --- */}
+                                    <div className='p-5 bg-white border border-zinc-200 rounded-2xl shadow-sm'>
+                                        <h2 className='text-base font-bold text-zinc-900 mb-1'>Services / Products</h2>
+                                        <p className='text-xs text-zinc-500 mb-4'>Add each service or product you offer.</p>
+
+                                        {services.length > 0 && (
+                                            <div className='space-y-2 mb-4'>
+                                                {services.map((svc, idx) => (
+                                                    <div key={idx} className='bg-zinc-50 border border-zinc-200 rounded-xl p-3 flex items-start justify-between gap-3'>
+                                                        <div>
+                                                            <p className='text-sm font-semibold text-zinc-800'>{svc.name}</p>
+                                                            <p className='text-xs text-zinc-500 mt-0.5'>{svc.description}</p>
+                                                            <div className='flex flex-wrap gap-2 mt-1.5'>
+                                                                {svc.price && <span className='text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-semibold'>💰 {svc.price}</span>}
+                                                                {svc.duration && <span className='text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full font-semibold'>⏱ {svc.duration}</span>}
+                                                                {svc.availability && <span className='text-[10px] bg-zinc-100 text-zinc-600 border border-zinc-200 px-2 py-0.5 rounded-full font-semibold'>📅 {svc.availability}</span>}
+                                                            </div>
+                                                        </div>
+                                                        <button onClick={() => setServices(prev => prev.filter((_, i) => i !== idx))} className='text-red-400 hover:text-red-600 text-xs font-semibold px-2 shrink-0'>Remove</button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <div className='space-y-2 border border-dashed border-zinc-300 rounded-xl p-4 bg-zinc-50'>
+                                            <p className='text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2'>Add a Service / Product</p>
+                                            <input type="text" placeholder='Name (e.g. Haircut, SEO Package)' className='w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' value={newService.name} onChange={e => setNewService(p => ({...p, name: e.target.value}))} />
+                                            <textarea placeholder='Description' className='w-full h-14 rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' value={newService.description} onChange={e => setNewService(p => ({...p, description: e.target.value}))} />
+                                            <div className='grid grid-cols-1 md:grid-cols-3 gap-2'>
+                                                <input type="text" placeholder='Price (e.g. ₹500, $30, Free)' className='rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' value={newService.price} onChange={e => setNewService(p => ({...p, price: e.target.value}))} />
+                                                <input type="text" placeholder='Duration (e.g. 45 mins)' className='rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' value={newService.duration} onChange={e => setNewService(p => ({...p, duration: e.target.value}))} />
+                                                <input type="text" placeholder='Availability (e.g. Mon–Fri)' className='rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' value={newService.availability} onChange={e => setNewService(p => ({...p, availability: e.target.value}))} />
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    if (newService.name.trim()) {
+                                                        const updated = [...services, {...newService}];
+                                                        setServices(updated);
+                                                        setNewService({name:'',description:'',price:'',duration:'',availability:''});
+                                                    }
+                                                }}
+                                                className='w-full px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 transition'
+                                            >
+                                                + Add Service / Product
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* --- SECTION 3: Policies --- */}
+                                    <div className='p-5 bg-white border border-zinc-200 rounded-2xl shadow-sm'>
+                                        <h2 className='text-base font-bold text-zinc-900 mb-1'>Policies</h2>
+                                        <p className='text-xs text-zinc-500 mb-4'>Define your business rules. The AI will quote these accurately.</p>
+                                        <div className='space-y-3'>
+                                            {[
+                                                {label:'Refund Policy', key:'refund', placeholder:'E.g. No refunds after 7 days of purchase.'},
+                                                {label:'Cancellation Policy', key:'cancellation', placeholder:'E.g. Cancellations allowed 24 hours before the appointment.'},
+                                                {label:'Delivery Policy', key:'delivery', placeholder:'E.g. Free delivery on orders above ₹500. Delivered within 2-3 days.'},
+                                                {label:'Booking Rules', key:'bookingRules', placeholder:'E.g. Advance booking required. 50% deposit needed.'},
+                                                {label:'Return Policy', key:'returnPolicy', placeholder:'E.g. Returns accepted within 15 days with original packaging.'},
+                                                {label:'General Policies', key:'general', placeholder:'E.g. Age restriction, ID requirements, dress code, etc.'},
+                                            ].map(({label, key, placeholder}) => (
+                                                <div key={key}>
+                                                    <label className='block text-xs font-semibold text-zinc-600 mb-1'>{label}</label>
+                                                    <textarea className='w-full h-14 rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder={placeholder} value={(policies as any)[key]} onChange={e => setPolicies({...policies, [key]: e.target.value})} onBlur={() => handleSettings()} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* --- SECTION 4: Human Support Escalation --- */}
+                                    <div className='p-5 bg-white border border-zinc-200 rounded-2xl shadow-sm'>
+                                        <h2 className='text-base font-bold text-zinc-900 mb-1'>Human Support Escalation</h2>
+                                        <p className='text-xs text-zinc-500 mb-4'>When the AI can&apos;t help, it will direct customers here.</p>
+                                        <div className='space-y-3'>
+                                            <input type="text" className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='Support Number (e.g. +91 98765 43210)' value={supportNumber} onChange={(e) => setSupportNumber(e.target.value)} />
+                                            <input type="email" className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='Support Email *' value={supportEmail} onChange={(e) => setSupportEmail(e.target.value)} />
+                                            <input type="text" className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='WhatsApp Number for customers (e.g. 15551234567)' value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} />
+                                            <input type="text" className='w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/80' placeholder='Emergency Contact (optional)' value={emergencyContact} onChange={(e) => setEmergencyContact(e.target.value)} />
+                                        </div>
+                                    </div>
+
+                                </div>
                             )}
                             {currentStep === 2 && (
                                 <div className='mb-10'>
@@ -923,8 +1008,8 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
                                     <button 
                                         onClick={async () => {
                                             if (currentStep === 1) {
-                                                if (!businessName.trim() || !supportEmail.trim() || !whatsappNumber.trim()) {
-                                                    alert("Please fill out all Business Details (Name, Email, WhatsApp) to continue.");
+                                                if (!businessName.trim()) {
+                                                    alert("Please enter your Business Name to continue.");
                                                     return;
                                                 }
                                             }

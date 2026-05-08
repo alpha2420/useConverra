@@ -24,9 +24,15 @@ export async function POST(req: NextRequest) {
 
 function cleanPdfText(raw: string) {
     return raw
-        .replace(/\n{3,}/g, '\n\n')     // remove excessive line breaks
-        .replace(/[^\x20-\x7E\n]/g, '') // remove weird characters
-        .replace(/[ \t]+/g, ' ')        // normalize horizontal spaces
+        // 1. Remove weird non-ascii characters (keeps basic punctuation and letters)
+        .replace(/[^\x20-\x7E\n\r]/g, '')
+        // 2. Fix words split across lines by hyphens (e.g., "busi-\nness" -> "business")
+        .replace(/([a-zA-Z]+)-\s*\n\s*([a-zA-Z]+)/g, '$1$2')
+        // 3. Normalize horizontal spaces (tabs, multiple spaces into one)
+        .replace(/[ \t]+/g, ' ')
+        // 4. Remove excessive empty lines (max 2 consecutive newlines)
+        .replace(/\n{3,}/g, '\n\n')
+        // 5. Trim leading/trailing whitespace
         .trim();
 }
 
