@@ -196,13 +196,36 @@ export async function POST(req: NextRequest) {
         let retrievedKnowledge = "";
         if (queryEmbedding) {
             try {
-                const chunks = await KnowledgeChunk.find({ ownerId }).lean();
-                console.log(`[RAG] Found ${chunks.length} total chunks for ownerId: "${ownerId}"`);
+                // Native MongoDB Atlas Vector Search
+                const chunks = await KnowledgeChunk.aggregate([
+                    {
+                        $vectorSearch: {
+                            index: "vector_index",
+                            path: "embedding",
+                            queryVector: queryEmbedding,
+                            numCandidates: 100,
+                            limit: 20,
+                            filter: { ownerId: ownerId }
+                        }
+                    },
+                    {
+                        $project: {
+                            chunkText: 1,
+                            embedding: 1,
+                            intent: 1,
+                            priority: 1,
+                            score: { $meta: "vectorSearchScore" }
+                        }
+                    }
+                ]);
+
+                console.log(`[RAG] Retrieved ${chunks.length} chunks via Atlas $vectorSearch for ownerId: "${ownerId}"`);
+
                 if (chunks.length > 0) {
                     // 1. Calculate base semantic scores with Metadata Boosting
                     const scored = chunks.map(c => {
-                        let score = cosineSimilarity(queryEmbedding!, c.embedding);
-                        console.log(`[RAG] Chunk: "${c.chunkText.slice(0, 30)}..." | Raw Score: ${score.toFixed(3)}`);
+                        let score = c.score;
+                        console.log(`[RAG] Chunk: "${c.chunkText.slice(0, 30)}..." | Atlas Score: ${score.toFixed(3)}`);
                         
                         // Boost for matching detected intent
                         if (c.intent && (c.intent === hardcodedIntent || c.intent === intent)) {
@@ -215,7 +238,7 @@ export async function POST(req: NextRequest) {
                         
                         return { 
                             text: c.chunkText, 
-                            embedding: (c as any).embedding,
+                            embedding: c.embedding,
                             score 
                         };
                     });

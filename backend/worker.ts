@@ -276,7 +276,6 @@ async function startClient(ownerId: string) {
             }
 
             // ── 6. Build Structured Prompt (4-section format) ────────────
-            const bName = setting.businessName || "us";
             const supportContact = (setting as any).supportNumber || (setting as any).supportEmail || (setting as any).whatsappNumber || "our support team";
 
             // Section 1 — Business Info (structured facts only)
