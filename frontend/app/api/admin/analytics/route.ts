@@ -3,6 +3,7 @@ import connectDb from "@shared/lib/db";
 import User from "@backend/models/user.model";
 import UsageLog from "@backend/models/usage-log.model";
 import Conversation from "@backend/models/conversation.model";
+import UnansweredQuestion from "@backend/models/unanswered-question.model";
 import { getSession } from "@shared/lib/getSession";
 
 export async function GET(req: NextRequest) {
@@ -113,6 +114,77 @@ export async function GET(req: NextRequest) {
             ownerName: leadOwnerMap[lead.ownerId] || 'Unknown'
         }));
 
+        // 7. Retention Metrics
+        const activeBusinesses = await UsageLog.distinct("ownerId", { timestamp: { $gte: thirtyDaysAgo } });
+        const businessRetentionRate = totalBusinesses > 0 ? Math.round((activeBusinesses.length / totalBusinesses) * 100) : 0;
+
+        const totalUniqueContacts = await Conversation.distinct("contactNumber").then(res => res.length);
+        const returningContactsAgg = await Conversation.aggregate([
+            { $group: { _id: "$contactNumber", count: { $sum: 1 } } },
+            { $match: { count: { $gt: 1 } } }
+        ]);
+        const endUserReturnRate = totalUniqueContacts > 0 ? Math.round((returningContactsAgg.length / totalUniqueContacts) * 100) : 0;
+
+        const retentionMetrics = {
+            businessRetentionRate,
+            activeBusinessesCount: activeBusinesses.length,
+            endUserReturnRate,
+            returningEndUsersCount: returningContactsAgg.length,
+            totalUniqueContacts
+        };
+
+        // 8. Product Iteration Recommendations
+        const productRecommendations = [];
+        
+        const complaintIntent = intentBreakdown.find(i => i._id === 'complaint');
+        const inquiryIntent = intentBreakdown.find(i => i._id === 'inquiry');
+        
+        if (complaintIntent && totalConversations > 0 && complaintIntent.count > (totalConversations * 0.1)) {
+            productRecommendations.push({
+                type: "critical",
+                title: "High Complaint Volume Detected",
+                description: `Over 10% (${complaintIntent.count}) of global conversations are complaints. Recommend auditing the recent hot leads to identify common fail points in customer service.`,
+                action: "View Leads"
+            });
+        }
+        
+        if (inquiryIntent && totalConversations > 0 && inquiryIntent.count > (totalConversations * 0.4)) {
+            productRecommendations.push({
+                type: "warning",
+                title: "High Inquiry Volume",
+                description: "A large portion of conversations are simple inquiries. We recommend encouraging businesses to add structured pricing and FAQs to their AI Knowledge Base to automate these.",
+                action: "Review FAQs"
+            });
+        }
+
+        const topUnanswered = await UnansweredQuestion.aggregate([
+            { $match: { status: "unanswered" } },
+            { $group: { _id: "$category", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 3 }
+        ]);
+
+        if (topUnanswered.length > 0) {
+            const topCategory = topUnanswered[0];
+            if (topCategory._id && topCategory._id !== 'unknown' && topCategory.count > 5) {
+                productRecommendations.push({
+                    type: "insight",
+                    title: `Knowledge Gap: ${topCategory._id.charAt(0).toUpperCase() + topCategory._id.slice(1)}`,
+                    description: `Users frequently ask about '${topCategory._id}' but the AI lacks information. Recommend notifying business owners to update this category.`,
+                    action: "Notify Owners"
+                });
+            }
+        }
+
+        if (productRecommendations.length === 0) {
+             productRecommendations.push({
+                 type: "success",
+                 title: "Platform Healthy",
+                 description: "Usage metrics and intent volumes look stable. No critical product iterations recommended at this time.",
+                 action: "View Analytics"
+             });
+        }
+
         return NextResponse.json({
             globalOverview: {
                 totalBusinesses,
@@ -124,7 +196,9 @@ export async function GET(req: NextRequest) {
             modelDistribution,
             intentBreakdown,
             businessLeaderboard,
-            recentHotLeads: enrichedRecentHotLeads
+            recentHotLeads: enrichedRecentHotLeads,
+            retentionMetrics,
+            productRecommendations
         });
     } catch (error) {
         console.error("[Admin Analytics]", error);

@@ -10,7 +10,12 @@ import {
     ShieldCheck,
     ChevronLeft,
     TrendingUp,
-    BarChart
+    BarChart,
+    Lightbulb,
+    AlertTriangle,
+    AlertCircle,
+    CheckCircle,
+    Target
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { 
@@ -64,6 +69,19 @@ interface AnalyticsData {
         extractedBudget: string;
         updatedAt: string;
         ownerName: string;
+    }>;
+    retentionMetrics: {
+        businessRetentionRate: number;
+        activeBusinessesCount: number;
+        endUserReturnRate: number;
+        returningEndUsersCount: number;
+        totalUniqueContacts: number;
+    };
+    productRecommendations: Array<{
+        type: "critical" | "warning" | "insight" | "success";
+        title: string;
+        description: string;
+        action: string;
     }>;
 }
 
@@ -257,6 +275,88 @@ export default function SuperAdminAnalytics() {
                                 </div>
                             ))}
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Retention & Recommendations */}
+            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                {/* Retention Metrics */}
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 shadow-xl flex flex-col">
+                    <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                        <Target className="w-5 h-5 text-emerald-400" />
+                        Platform Retention
+                    </h3>
+                    <p className="text-sm text-zinc-400 mb-6">Active businesses & returning users</p>
+                    
+                    <div className="space-y-6 flex-1 flex flex-col justify-center">
+                        <div>
+                            <div className="flex justify-between items-end mb-2">
+                                <div className="text-sm font-bold text-zinc-300">30-Day Active Businesses</div>
+                                <div className="text-2xl font-bold text-white">{data.retentionMetrics.businessRetentionRate}%</div>
+                            </div>
+                            <div className="w-full bg-zinc-800 rounded-full h-3 mb-1 overflow-hidden">
+                                <div className="bg-emerald-500 h-full rounded-full transition-all duration-1000 relative" style={{ width: `${data.retentionMetrics.businessRetentionRate}%` }}>
+                                    <div className="absolute top-0 right-0 bottom-0 left-0 bg-gradient-to-r from-transparent to-white/20"></div>
+                                </div>
+                            </div>
+                            <div className="text-xs text-zinc-500 font-medium text-right">
+                                {data.retentionMetrics.activeBusinessesCount} / {data.globalOverview.totalBusinesses} Active
+                            </div>
+                        </div>
+
+                        <div>
+                            <div className="flex justify-between items-end mb-2">
+                                <div className="text-sm font-bold text-zinc-300">Returning End-Users</div>
+                                <div className="text-2xl font-bold text-white">{data.retentionMetrics.endUserReturnRate}%</div>
+                            </div>
+                            <div className="w-full bg-zinc-800 rounded-full h-3 mb-1 overflow-hidden">
+                                <div className="bg-blue-500 h-full rounded-full transition-all duration-1000 relative" style={{ width: `${data.retentionMetrics.endUserReturnRate}%` }}>
+                                    <div className="absolute top-0 right-0 bottom-0 left-0 bg-gradient-to-r from-transparent to-white/20"></div>
+                                </div>
+                            </div>
+                            <div className="text-xs text-zinc-500 font-medium text-right">
+                                {data.retentionMetrics.returningEndUsersCount} / {data.retentionMetrics.totalUniqueContacts} Returning
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Product Iteration Recommendations */}
+                <div className="lg:col-span-2 bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 shadow-xl">
+                    <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                        <Lightbulb className="w-5 h-5 text-amber-400" />
+                        Product Iteration Insights
+                    </h3>
+                    <p className="text-sm text-zinc-400 mb-6">AI-generated recommendations based on global user behavior</p>
+                    
+                    <div className="space-y-4 max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
+                        {data.productRecommendations.map((rec, i) => {
+                            const icons = {
+                                critical: <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />,
+                                warning: <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />,
+                                insight: <Lightbulb className="w-5 h-5 text-indigo-400 mt-0.5 flex-shrink-0" />,
+                                success: <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                            };
+                            const borders = {
+                                critical: "border-red-500/30 bg-red-500/5",
+                                warning: "border-amber-500/30 bg-amber-500/5",
+                                insight: "border-indigo-500/30 bg-indigo-500/5",
+                                success: "border-emerald-500/30 bg-emerald-500/5"
+                            };
+                            return (
+                                <div key={i} className={`p-4 rounded-2xl border ${borders[rec.type]} flex gap-4 items-start transition-all hover:-translate-y-0.5`}>
+                                    {icons[rec.type]}
+                                    <div className="flex-1">
+                                        <h4 className="text-white font-bold mb-1">{rec.title}</h4>
+                                        <p className="text-sm text-zinc-300 leading-relaxed mb-3">{rec.description}</p>
+                                        <button className="text-xs font-bold px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition-colors border border-zinc-700">
+                                            {rec.action}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
