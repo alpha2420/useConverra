@@ -383,7 +383,7 @@ ${cleanMessage}`;
             const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 
             // Smart Routing: complex queries use Pro, medium use Flash
-            const modelName = isComplex ? "gemini-2.0-pro" : "gemini-2.0-flash"; 
+            const modelName = isComplex ? "gemini-1.5-pro" : "gemini-1.5-flash"; 
             const maxTokens = isComplex ? 250 : 120;
             
             try {
