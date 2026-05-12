@@ -2,42 +2,29 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { env } from "./env";
 
 /**
- * Generates a vector embedding for the given text using Google's text-embedding-004 model.
+ * Generates a vector embedding for the given text using Google's gemini-embedding-001 model.
  */
 export async function getEmbedding(text: string): Promise<number[]> {
     if (!env.GEMINI_API_KEY) {
         throw new Error("GEMINI_API_KEY is missing from environment variables.");
     }
     
-    // text-embedding-004 is the stable, widely available Gemini embedding model
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${env.GEMINI_API_KEY}`;
+    // gemini-embedding-001 is the stable, confirmed-available embedding model
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${env.GEMINI_API_KEY}`;
     
     try {
         const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: "models/text-embedding-004",
+                model: "models/gemini-embedding-001",
                 content: { parts: [{ text: text.replace(/\n/g, " ") }] }
             })
         });
 
         const data = await res.json();
         if (data.error) {
-            console.error(`Gemini Embedding API Error: ${data.error.message}`);
-            // Fallback to older model if 004 fails
-            const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${env.GEMINI_API_KEY}`;
-            const fRes = await fetch(fallbackUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: "models/gemini-embedding-001",
-                    content: { parts: [{ text: text.replace(/\n/g, " ") }] }
-                })
-            });
-            const fData = await fRes.json();
-            if (fData.error) throw new Error(`Gemini Embedding Fallback Error: ${fData.error.message}`);
-            return fData.embedding.values;
+            throw new Error(`Gemini Embedding API Error: ${data.error.message}`);
         }
         
         return data.embedding.values;

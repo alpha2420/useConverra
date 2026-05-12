@@ -7,7 +7,8 @@
     "build": "next build frontend",
     "start": "next start frontend",
     "lint": "eslint",
-    "worker": "tsx --env-file=.env.local backend/worker.ts"
+    "worker": "tsx --env-file=.env.local backend/worker.ts",
+    "test:ai": "tsx --import ./tests/preload.mts tests/runAITests.ts"
   },
   "dependencies": {
     "@google/genai": "^1.38.0",
