@@ -33,7 +33,13 @@ jobs:
     # Add: GEMINI_API_KEY, OPENAI_API_KEY, MONGODB_URL
     - name: Run AI Tests
       env:
+        AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+        NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         MONGODB_URL: ${{ secrets.MONGODB_URL }}
+        GROK_API_KEY: ${{ secrets.GROK_API_KEY }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+        UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
       run: npm run test:ai
