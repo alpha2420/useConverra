@@ -82,10 +82,10 @@ export async function POST(req:NextRequest) {
                     console.log(`[RAG] Successfully indexed ${validChunks.length} chunks for ${ownerId}`);
                 }
 
-                // Clear the AI response cache so the bot uses the NEW knowledge immediately
-                const CachedResponse = (await import("@backend/models/cached-response.model")).default;
-                await CachedResponse.deleteMany({ ownerId });
-                console.log(`[Cache] Cleared all cached responses for ${ownerId} due to KB update.`);
+                // Clear the Redis AI response cache so the bot uses the NEW knowledge immediately
+                const { RedisService } = await import("@backend/services/RedisService");
+                await RedisService.invalidateOwnerCache(ownerId);
+                console.log(`[Cache] Cleared Redis responses for ${ownerId} due to KB update.`);
             } catch (ragErr) {
                 console.error("[RAG] Processing error:", ragErr);
                 // We don't return error here to avoid blocking settings save

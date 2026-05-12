@@ -8,6 +8,7 @@ import { RAGService } from "./RAGService";
 import { PromptBuilderService } from "./PromptBuilderService";
 import { UnansweredQuestionService } from "./UnansweredQuestionService";
 import { LLMFactory } from "../llm/LLMFactory";
+import { RedisService } from "./RedisService";
 
 export class ChatPipelineService {
     static async executeChat(
@@ -69,7 +70,12 @@ export class ChatPipelineService {
             return intentReply;
         }
 
-        // 5. Cache Check (Disabled - Moving to Upstash Redis in Phase 3)
+        // 5. Redis Cache Check (Lightning Fast FAQs)
+        // We only check cache for standalone queries (empty history) to avoid serving wrong contextual answers.
+        if (history.length === 0) {
+            const cached = await RedisService.getCachedResponse(ownerId, cleanMessage);
+            if (cached) return cached;
+        }
 
         // 6. Embedding Generation
         let queryEmbedding: number[] | undefined;
@@ -118,6 +124,9 @@ export class ChatPipelineService {
         if (!result.canAnswer) {
             // Log for human follow-up
             UnansweredQuestionService.logUnanswered(ownerId, message, intent, queryEmbedding).catch(() => {});
+        } else if (history.length === 0) {
+            // 11. Save confident answers to Redis cache
+            RedisService.setCachedResponse(ownerId, cleanMessage, result.reply).catch(() => {});
         }
 
         return result.reply;

@@ -90,6 +90,12 @@ const ConversationSchema = new Schema<IConversation>(
 // One active conversation per lead
 ConversationSchema.index({ ownerId: 1, contactNumber: 1 }, { unique: true });
 
+// Indexes for fast dashboard stats
+ConversationSchema.index({ ownerId: 1, createdAt: 1 });
+ConversationSchema.index({ ownerId: 1, lastMessageAt: -1 });
+ConversationSchema.index({ ownerId: 1, intent: 1 });
+ConversationSchema.index({ ownerId: 1, urgency: 1 });
+
 const Conversation: Model<IConversation> =
     mongoose.models.Conversation ||
     model<IConversation>("Conversation", ConversationSchema);

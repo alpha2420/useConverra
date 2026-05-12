@@ -68,6 +68,11 @@ const LeadSchema = new Schema<ILead>(
 // A Lead is unique per Business Tenant (ownerId) and phone number
 LeadSchema.index({ ownerId: 1, contactNumber: 1 }, { unique: true });
 
+// Indexes for fast dashboard stats and CRM filtering
+LeadSchema.index({ ownerId: 1, stage: 1 });
+LeadSchema.index({ ownerId: 1, leadScore: 1 });
+LeadSchema.index({ ownerId: 1, lastContactAt: -1 });
+
 const Lead: Model<ILead> = mongoose.models.Lead || model<ILead>("Lead", LeadSchema);
 
 export default Lead;
