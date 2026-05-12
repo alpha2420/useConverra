@@ -1,7 +1,6 @@
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { IMessage } from "../models/conversation.model";
-import { clearProviderError, reportProviderError } from "./providerError";
  
 export interface ConversationAnalysis {
     // Existing
@@ -58,13 +57,11 @@ ${transcript}`;
                 if (cleaned.startsWith("```")) {
                     cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/```\s*$/, "").trim();
                 }
-                if (ownerId) await clearProviderError(ownerId, 'gemini');
                 console.log("[Analyze] Gemini success (Primary)");
                 return JSON.parse(cleaned) as ConversationAnalysis;
             }
         } catch (e: any) {
             console.error("[Analyze] Gemini failed:", e);
-            if (ownerId) await reportProviderError(ownerId, 'gemini', e);
         }
     }
 
@@ -81,13 +78,11 @@ ${transcript}`;
             });
             const content = completion.choices[0].message.content;
             if (content) {
-                if (ownerId) await clearProviderError(ownerId, 'openai');
                 console.log("[Analyze] OpenAI success (Fallback)");
                 return JSON.parse(content) as ConversationAnalysis;
             }
         } catch (e: any) {
             console.error("[Analyze] OpenAI failed:", e);
-            if (ownerId) await reportProviderError(ownerId, 'openai', e);
         }
     }
 
@@ -104,13 +99,11 @@ ${transcript}`;
             });
             const content = completion.choices[0].message.content;
             if (content) {
-                if (ownerId) await clearProviderError(ownerId, 'grok');
                 console.log("[Analyze] Grok success (Fallback)");
                 return JSON.parse(content) as ConversationAnalysis;
             }
         } catch (e: any) {
             console.error("[Analyze] Grok failed:", e);
-            if (ownerId) await reportProviderError(ownerId, 'grok', e);
         }
     }
 
@@ -127,13 +120,11 @@ ${transcript}`;
             });
             const content = completion.choices[0].message.content;
             if (content) {
-                if (ownerId) await clearProviderError(ownerId, 'groq');
                 console.log("[Analyze] Groq success (Fallback)");
                 return JSON.parse(content) as ConversationAnalysis;
             }
         } catch (e: any) {
             console.error("[Analyze] Groq failed:", e);
-            if (ownerId) await reportProviderError(ownerId, 'groq', e);
         }
     }
  

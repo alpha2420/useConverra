@@ -7,6 +7,7 @@
     "build": "next build frontend",
     "start": "next start frontend",
     "lint": "eslint",
+    "format": "prettier --write .",
     "worker": "tsx --env-file=.env.local backend/worker.ts",
     "test:ai": "tsx --import ./tests/preload.mts tests/runAITests.ts"
   },
@@ -45,6 +46,8 @@
     "dotenv": "^17.4.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.4",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.3",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"

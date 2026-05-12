@@ -1,4 +1,21 @@
 export class PromptBuilderService {
+    /**
+     * Cleans and normalizes raw customer input.
+     * Merged logic from deprecated preprocessMessage.ts.
+     */
+    static cleanMessage(raw: string): string {
+        if (!raw) return "";
+        let text = raw.toLowerCase().trim();
+        
+        // Basic WhatsApp slang expansion
+        const slang: Record<string, string> = { 
+            "pls": "please", "plz": "please", "u": "you", "ur": "your", 
+            "r": "are", "cn": "can", "hw": "how", "thx": "thanks" 
+        };
+        
+        return text.split(/\s+/).map(w => slang[w] || w).join(" ");
+    }
+
     static build(
         setting: any, 
         locations: any[], 

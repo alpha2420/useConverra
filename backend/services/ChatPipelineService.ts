@@ -1,5 +1,3 @@
-import { getCachedReply, setCachedReply } from "@backend/services/responseCache";
-import { preprocessMessage } from "@backend/services/preprocessMessage";
 import { getEmbedding } from "@shared/lib/embeddings";
 import { classifyIntent, getIntentReply } from "@shared/lib/intentClassifier";
 import { matchHardcodedIntent } from "@shared/lib/hardcodedRules";
@@ -20,8 +18,8 @@ export class ChatPipelineService {
     ): Promise<string | { error: string, status: number }> {
         
         // 1. Memory & Preprocessing
-        const conversationMemory = MemoryService.formatMemory(history);
-        const cleanMessage = preprocessMessage(message);
+        const conversationMemory = await MemoryService.formatMemory(history, null, ownerId);
+        const cleanMessage = PromptBuilderService.cleanMessage(message);
         console.log(`[Pipeline] Raw: "${message}" → Clean: "${cleanMessage}"`);
 
         // Guard: empty or whitespace-only messages
@@ -71,9 +69,7 @@ export class ChatPipelineService {
             return intentReply;
         }
 
-        // 5. Cache Check
-        const cachedAnswer = await getCachedReply(ownerId, cleanMessage, undefined, intent);
-        if (cachedAnswer) return cachedAnswer;
+        // 5. Cache Check (Disabled - Moving to Upstash Redis in Phase 3)
 
         // 6. Embedding Generation
         let queryEmbedding: number[] | undefined;
@@ -118,12 +114,10 @@ export class ChatPipelineService {
             return { error: "The AI service is temporarily overloaded. Please try again in 1-2 minutes.", status: 503 };
         }
 
-        // 10. Post-processing (Unanswered + Cache)
+        // 10. Post-processing
         if (!result.canAnswer) {
-            // Safe to run in background asynchronously (Observer pattern concept)
+            // Log for human follow-up
             UnansweredQuestionService.logUnanswered(ownerId, message, intent, queryEmbedding).catch(() => {});
-        } else if (result.reply) {
-            setCachedReply(ownerId, cleanMessage, result.reply, queryEmbedding, intent).catch(() => {});
         }
 
         return result.reply;
