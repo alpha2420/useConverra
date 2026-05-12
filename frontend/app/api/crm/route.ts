@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@shared/lib/db";
 import Conversation from "@backend/models/conversation.model";
+import Lead from "@backend/models/lead.model";
 import PendingMessage from "@backend/models/pending-message.model";
 import { getSession } from "@shared/lib/getSession";
 
@@ -20,9 +21,16 @@ export async function GET(req: NextRequest) {
 
         // ── Single conversation with full messages ─────────────────────────
         if (contactNumber) {
+            const lead = await Lead.findOne({ ownerId, contactNumber }).lean();
             const convo = await Conversation.findOne({ ownerId, contactNumber }).lean();
-            if (!convo) return NextResponse.json({ message: "Not found" }, { status: 404 });
-            return NextResponse.json(convo);
+            if (!lead && !convo) return NextResponse.json({ message: "Not found" }, { status: 404 });
+            
+            // Merge lead CRM data with conversation chat data for frontend compatibility
+            return NextResponse.json({ 
+                ...lead, 
+                ...convo, 
+                messages: convo?.messages || [] 
+            });
         }
 
         // ── Contacts list ──────────────────────────────────────────────────
@@ -30,20 +38,19 @@ export async function GET(req: NextRequest) {
         if (stage) filter.stage = stage;
         if (leadScore) filter.leadScore = leadScore;
 
-        const contacts = await Conversation.find(filter)
-            .sort({ lastMessageAt: -1 })
+        const contacts = await Lead.find(filter)
+            .sort({ lastContactAt: -1 })
             .limit(100)
-            .select("-messages") // exclude messages for list view
             .lean();
 
         // Stats
         const [total, hot, warm, cold, won, newLeads] = await Promise.all([
-            Conversation.countDocuments({ ownerId }),
-            Conversation.countDocuments({ ownerId, leadScore: "hot" }),
-            Conversation.countDocuments({ ownerId, leadScore: "warm" }),
-            Conversation.countDocuments({ ownerId, leadScore: "cold" }),
-            Conversation.countDocuments({ ownerId, stage: "won" }),
-            Conversation.countDocuments({ ownerId, stage: "new" }),
+            Lead.countDocuments({ ownerId }),
+            Lead.countDocuments({ ownerId, leadScore: "hot" }),
+            Lead.countDocuments({ ownerId, leadScore: "warm" }),
+            Lead.countDocuments({ ownerId, leadScore: "cold" }),
+            Lead.countDocuments({ ownerId, stage: "won" }),
+            Lead.countDocuments({ ownerId, stage: "new" }),
         ]);
 
         return NextResponse.json({
@@ -72,21 +79,35 @@ export async function PATCH(req: NextRequest) {
             return NextResponse.json({ message: "contactNumber is required" }, { status: 400 });
         }
 
-        const updates: Record<string, any> = {};
-        if (stage !== undefined) updates.stage = stage;
-        if (notes !== undefined) updates.notes = notes;
-        if (tags !== undefined) updates.tags = tags;
-        if (isAiPaused !== undefined) updates.isAiPaused = isAiPaused;
+        const leadUpdates: Record<string, any> = {};
+        if (stage !== undefined) leadUpdates.stage = stage;
+        if (notes !== undefined) leadUpdates.notes = notes;
+        if (tags !== undefined) leadUpdates.tags = tags;
+        
+        const convoUpdates: Record<string, any> = {};
+        if (isAiPaused !== undefined) convoUpdates.isAiPaused = isAiPaused;
 
-        const updated = await Conversation.findOneAndUpdate(
-            { ownerId, contactNumber },
-            { $set: updates },
-            { new: true }
-        ).select("-messages").lean();
+        let updatedLead = null;
+        if (Object.keys(leadUpdates).length > 0) {
+            updatedLead = await Lead.findOneAndUpdate(
+                { ownerId, contactNumber },
+                { $set: leadUpdates },
+                { new: true }
+            ).lean();
+        }
 
-        if (!updated) return NextResponse.json({ message: "Contact not found" }, { status: 404 });
+        let updatedConvo = null;
+        if (Object.keys(convoUpdates).length > 0) {
+            updatedConvo = await Conversation.findOneAndUpdate(
+                { ownerId, contactNumber },
+                { $set: convoUpdates },
+                { new: true }
+            ).select("-messages").lean();
+        }
 
-        return NextResponse.json(updated);
+        if (!updatedLead && !updatedConvo) return NextResponse.json({ message: "Contact not found" }, { status: 404 });
+
+        return NextResponse.json({ ...updatedLead, ...updatedConvo });
     } catch (error) {
         console.error("[CRM PATCH]", error);
         return NextResponse.json({ message: "Internal server error" }, { status: 500 });

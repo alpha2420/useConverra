@@ -8,9 +8,10 @@ import connectDb from '../shared/lib/db';
 import Settings from './models/settings.model';
 import WhatsappStatus from './models/whatsapp-status.model';
 import UnansweredQuestion from './models/unanswered-question.model';
-import Conversation from './models/conversation.model';
 import PendingMessage from './models/pending-message.model';
 import { analyzeConversation } from './services/analyzeConversation';
+import { ChatRepository } from './repositories/ChatRepository';
+import Conversation from './models/conversation.model'; // Kept for manual pruning
 
 if (typeof global.fetch === 'undefined') {
     global.fetch = fetch as any;
@@ -81,14 +82,7 @@ async function pollPendingMessages() {
 
             try {
                 await client.sendMessage(msg.to, msg.text);
-                await Conversation.findOneAndUpdate(
-                    { ownerId, contactNumber: msg.to },
-                    {
-                        $push: { messages: { role: "owner", text: msg.text, timestamp: new Date() } },
-                        $set: { lastMessageAt: new Date() },
-                    },
-                    { upsert: true }
-                );
+                await ChatRepository.saveMessage(ownerId, msg.to, "owner", msg.text);
                 await PendingMessage.findByIdAndUpdate(msg._id, { status: "sent" });
                 console.log(`[Worker] Sent outbound to ${msg.to} for ${ownerId}`);
             } catch (err) {
@@ -173,23 +167,16 @@ async function startClient(ownerId: string) {
             const contactNumber = msg.from;
             const contactName = chat.name || msg.from;
 
-            // ── 1. Save incoming message ──────────────────────────────────
-            await Conversation.findOneAndUpdate(
-                { ownerId, contactNumber },
-                {
-                    $push: { messages: { role: "customer", text: msg.body, timestamp: new Date() } },
-                    $set: { contactName, lastMessageAt: new Date() },
-                    $setOnInsert: { ownerId, contactNumber },
-                },
-                { upsert: true, new: true }
-            );
-
+            // ── 1. Ensure Lead & Convo exist, and save incoming message ──
+            const { conversation } = await ChatRepository.getOrCreateChat(ownerId, contactNumber, contactName);
+            
             // ── 2. Check if AI is paused ──────────────────────────────────
-            const existingConvo = await Conversation.findOne({ ownerId, contactNumber });
-            if (existingConvo?.isAiPaused) {
+            if (conversation.isAiPaused) {
                 console.log(`[Worker] AI paused for ${contactNumber}, skipping.`);
                 return;
             }
+
+            await ChatRepository.saveMessage(ownerId, contactNumber, "customer", msg.body);
 
             // ── 3. Fetch settings ─────────────────────────────────────────
             const setting = await Settings.findOne({ ownerId }).lean();
@@ -199,10 +186,14 @@ async function startClient(ownerId: string) {
             const { ChatPipelineService } = await import('./services/ChatPipelineService');
             
             console.log(`[Worker] Executing pipeline for ${contactNumber}`);
+            
+            // We need to fetch recent history
+            const history = await ChatRepository.getRecentHistory(ownerId, contactNumber, 20);
+            
             const reply = await ChatPipelineService.executeChat(
                 ownerId,
                 msg.body, 
-                existingConvo?.messages || [], 
+                history, 
                 setting
             );
 
@@ -215,14 +206,7 @@ async function startClient(ownerId: string) {
             await msg.reply(reply);
 
             // ── 5. Save bot reply and manage memory ───────────────────────────
-            const updatedConvo = await Conversation.findOneAndUpdate(
-                { ownerId, contactNumber },
-                {
-                    $push: { messages: { role: "bot", text: reply, timestamp: new Date() } },
-                    $set: { lastMessageAt: new Date() },
-                },
-                { new: true }
-            );
+            const updatedConvo = await ChatRepository.saveMessage(ownerId, contactNumber, "bot", reply);
 
 
             // ── Memory Pruning: trim to last 50 messages if conversation exceeds 100 ──
@@ -240,23 +224,25 @@ async function startClient(ownerId: string) {
                 analyzeConversation(updatedConvo.messages)
                     .then(async (analysis) => {
                         if (!analysis) return;
-                        await Conversation.findByIdAndUpdate(updatedConvo._id, {
-                            $set: {
-                                intent: analysis.intent,
-                                urgency: analysis.urgency,
-                                leadScore: analysis.leadScore,
-                                extractedName: analysis.extractedName,
-                                extractedBudget: analysis.extractedBudget,
-                                summary: analysis.summary,
-                                nextBestAction: analysis.nextBestAction,
-                                nextBestActionType: analysis.nextBestActionType,
-                                "enriched.company": analysis.enriched.company,
-                                "enriched.location": analysis.enriched.location,
-                                "enriched.email": analysis.enriched.email,
-                                "enriched.language": analysis.enriched.language,
-                                lastAnalyzedAt: new Date(),
-                            },
+                        
+                        await ChatRepository.updateConversationAnalysis(ownerId, contactNumber, {
+                            intent: analysis.intent as any,
+                            urgency: analysis.urgency as any,
+                            summary: analysis.summary,
+                            nextBestAction: analysis.nextBestAction,
+                            nextBestActionType: analysis.nextBestActionType as any,
+                            lastAnalyzedAt: new Date(),
                         });
+
+                        const leadUpdates: any = {
+                            leadScore: analysis.leadScore as any,
+                            extractedBudget: analysis.extractedBudget || null,
+                            enriched: analysis.enriched as any
+                        };
+                        if (analysis.extractedName) leadUpdates.contactName = analysis.extractedName;
+
+                        await ChatRepository.updateLead(ownerId, contactNumber, leadUpdates);
+
                         console.log(`[Worker] Analysis + memory done for ${contactNumber}`);
                     })
                     .catch((e) => console.error("[Worker] Analysis failed:", e));

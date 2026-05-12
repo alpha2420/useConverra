@@ -6,40 +6,28 @@ export interface IMessage {
     timestamp: Date;
 }
 
-export type CRMStage = "new" | "contacted" | "interested" | "negotiating" | "won" | "lost";
-
-export interface IEnriched {
-    company: string | null;
-    location: string | null;
-    email: string | null;
-    language: string | null;
-}
-
 export interface IConversation extends Document {
-    ownerId: string;
-    contactNumber: string;
-    contactName: string;
+    ownerId: string; // The Business Tenant ID
+    contactNumber: string; // Used to quickly find the conversation
+    leadId: mongoose.Types.ObjectId; // Reference to the Lead
+    
     messages: IMessage[];
-    // AI Analysis
+    
+    // AI Analysis (Specific to this ongoing conversation)
     intent: "buying" | "inquiry" | "complaint" | "spam" | "unknown";
     urgency: "high" | "medium" | "low";
-    leadScore: "hot" | "warm" | "cold";
-    extractedName: string | null;
-    extractedBudget: string | null;
     summary: string | null;
     lastAnalyzedAt: Date | null;
     sentiment: "positive" | "neutral" | "negative" | "unknown";
+    
     source: "whatsapp" | "widget" | "email" | "unknown";
     firstReplyTime: number | null; // in seconds
-    // Next Best Action
+    
+    // Next Best Action (AI suggestion for the owner)
     nextBestAction: string | null;
     nextBestActionType: "follow_up" | "send_pricing" | "close" | "nurture" | "escalate" | "none" | null;
-    // Enriched Records
-    enriched: IEnriched;
-    // CRM Fields
-    stage: CRMStage;
-    notes: string;
-    tags: string[];
+    
+    // State
     isAiPaused: boolean;
     lastMessageAt: Date;
     createdAt: Date;
@@ -55,22 +43,14 @@ const MessageSchema = new Schema<IMessage>(
     { _id: false }
 );
 
-const EnrichedSchema = new Schema<IEnriched>(
-    {
-        company: { type: String, default: null },
-        location: { type: String, default: null },
-        email: { type: String, default: null },
-        language: { type: String, default: null },
-    },
-    { _id: false }
-);
-
 const ConversationSchema = new Schema<IConversation>(
     {
         ownerId: { type: String, required: true, index: true },
         contactNumber: { type: String, required: true },
-        contactName: { type: String, default: "" },
+        leadId: { type: Schema.Types.ObjectId, ref: "Lead", required: true },
+        
         messages: { type: [MessageSchema], default: [] },
+        
         // AI Analysis
         intent: {
             type: String,
@@ -78,9 +58,6 @@ const ConversationSchema = new Schema<IConversation>(
             default: "unknown",
         },
         urgency: { type: String, enum: ["high", "medium", "low"], default: "low" },
-        leadScore: { type: String, enum: ["hot", "warm", "cold"], default: "cold" },
-        extractedName: { type: String, default: null },
-        extractedBudget: { type: String, default: null },
         summary: { type: String, default: null },
         lastAnalyzedAt: { type: Date, default: null },
         sentiment: { 
@@ -88,12 +65,14 @@ const ConversationSchema = new Schema<IConversation>(
             enum: ["positive", "neutral", "negative", "unknown"], 
             default: "unknown" 
         },
+        
         source: { 
             type: String, 
             enum: ["whatsapp", "widget", "email", "unknown"], 
-            default: "whatsapp" // Defaulting to WhatsApp since that's the main channel
+            default: "whatsapp" 
         },
         firstReplyTime: { type: Number, default: null },
+        
         // Next Best Action
         nextBestAction: { type: String, default: null },
         nextBestActionType: {
@@ -101,22 +80,14 @@ const ConversationSchema = new Schema<IConversation>(
             enum: ["follow_up", "send_pricing", "close", "nurture", "escalate", "none", null],
             default: null,
         },
-        // Enriched Records
-        enriched: { type: EnrichedSchema, default: () => ({}) },
-        // CRM
-        stage: {
-            type: String,
-            enum: ["new", "contacted", "interested", "negotiating", "won", "lost"],
-            default: "new",
-        },
-        notes: { type: String, default: "" },
-        tags: { type: [String], default: [] },
+        
         isAiPaused: { type: Boolean, default: false },
         lastMessageAt: { type: Date, default: Date.now },
     },
     { timestamps: true }
 );
 
+// One active conversation per lead
 ConversationSchema.index({ ownerId: 1, contactNumber: 1 }, { unique: true });
 
 const Conversation: Model<IConversation> =

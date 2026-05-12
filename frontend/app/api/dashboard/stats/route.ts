@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@shared/lib/db";
 import Conversation from "@backend/models/conversation.model";
+import Lead from "@backend/models/lead.model";
 import UnansweredQuestion from "@backend/models/unanswered-question.model";
 import { getSession } from "@shared/lib/getSession";
  
@@ -51,13 +52,13 @@ export async function GET(req: NextRequest) {
             Conversation.countDocuments({ ownerId, createdAt: { $gte: startOfToday } }),
  
             // Lead score breakdown
-            Conversation.aggregate([
+            Lead.aggregate([
                 { $match: { ownerId } },
                 { $group: { _id: "$leadScore", count: { $sum: 1 } } },
             ]),
  
             // Stage breakdown
-            Conversation.aggregate([
+            Lead.aggregate([
                 { $match: { ownerId } },
                 { $group: { _id: "$stage", count: { $sum: 1 } } },
             ]),
@@ -109,14 +110,14 @@ export async function GET(req: NextRequest) {
             ]),
  
             // Hot leads this week
-            Conversation.countDocuments({
+            Lead.countDocuments({
                 ownerId,
                 leadScore: "hot",
-                lastMessageAt: { $gte: startOf7Days },
+                lastContactAt: { $gte: startOf7Days },
             }),
  
             // Won deals
-            Conversation.countDocuments({ ownerId, stage: "won" }),
+            Lead.countDocuments({ ownerId, stage: "won" }),
 
             // Hourly message engagement overall
             Conversation.aggregate([
@@ -157,7 +158,7 @@ export async function GET(req: NextRequest) {
             ]),
 
             // Daily Solved (last 7 days)
-            Conversation.aggregate([
+            Lead.aggregate([
                 { $match: { 
                     ownerId, 
                     stage: { $in: ["won", "lost"] },
