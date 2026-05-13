@@ -1,6 +1,7 @@
 import { ITool } from "./ITool";
 import { CRMTool } from "./impl/CRMTool";
 import { TicketTool } from "./impl/TicketTool";
+import { VisitTool } from "./impl/VisitTool";
 
 /**
  * ToolRouter — Singleton Pattern
@@ -20,6 +21,7 @@ export class ToolRouter {
         // Register all available tools at startup
         this.register(new CRMTool());
         this.register(new TicketTool());
+        this.register(new VisitTool());
     }
 
     /** Singleton: returns a single shared instance */

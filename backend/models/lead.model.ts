@@ -1,6 +1,6 @@
 import mongoose, { model, Schema, Document, Model } from "mongoose";
 
-export type CRMStage = "new" | "contacted" | "interested" | "negotiating" | "won" | "lost";
+export type CRMStage = "new" | "contacted" | "interested" | "visit_booked" | "negotiating" | "won" | "lost";
 
 export interface IEnriched {
     company: string | null;
@@ -50,8 +50,8 @@ const LeadSchema = new Schema<ILead>(
         
         stage: {
             type: String,
-            enum: ["new", "contacted", "interested", "negotiating", "won", "lost"],
-            default: "new",
+            enum: ["new", "contacted", "interested", "visit_booked", "negotiating", "won", "lost"],
+            default: "new"
         },
         leadScore: { type: String, enum: ["hot", "warm", "cold"], default: "cold" },
         notes: { type: String, default: "" },
