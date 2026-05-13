@@ -9,6 +9,8 @@ import { PromptBuilderService } from "./PromptBuilderService";
 import { UnansweredQuestionService } from "./UnansweredQuestionService";
 import { LLMFactory } from "../llm/LLMFactory";
 import { RedisService } from "./RedisService";
+import { ToolRouter } from "../tools/ToolRouter";
+import { GeminiStrategy } from "../llm/strategies/GeminiStrategy";
 
 export class ChatPipelineService {
     static async executeChat(
@@ -118,6 +120,35 @@ export class ChatPipelineService {
 
         if (!result) {
             return { error: "The AI service is temporarily overloaded. Please try again in 1-2 minutes.", status: 503 };
+        }
+
+        // 9.5. Tool Calling (AI Agent Layer)
+        // If Gemini is available, we try the tool-aware pipeline.
+        // If the AI decides to call a tool, we execute it and skip to final reply.
+        try {
+            const geminiStrategy = LLMFactory.getStrategy("gemini");
+            if (geminiStrategy instanceof GeminiStrategy) {
+                const toolRouter = ToolRouter.getInstance();
+                const toolResult = await geminiStrategy.generateWithTools(
+                    prompt,
+                    toolRouter.getToolDefinitions(),
+                    ownerId
+                );
+
+                if (toolResult?.type === "tool_call") {
+                    // Execute the requested tool and return its result directly
+                    const toolOutput = await toolRouter.execute(ownerId, toolResult.name, toolResult.args);
+                    console.log(`[Pipeline] Tool "${toolResult.name}" executed. Output: ${toolOutput}`);
+                    return toolOutput;
+                }
+                // If it returned text via tool-aware call, use that
+                if (toolResult?.type === "text") {
+                    result = { canAnswer: toolResult.canAnswer, reply: toolResult.reply };
+                }
+            }
+        } catch (toolErr) {
+            // Graceful degradation: if tool layer fails, fall through to normal result
+            console.error("[Pipeline] Tool layer error — using standard LLM result:", toolErr);
         }
 
         // 10. Post-processing

@@ -52,6 +52,51 @@ export class GeminiStrategy implements LLMStrategy {
         }
     }
 
+    /**
+     * generateWithTools — Sends the prompt to Gemini along with tool definitions.
+     * If Gemini decides to call a tool, returns the function call details instead of text.
+     * This method is completely isolated and does NOT affect the existing `generate` flow.
+     */
+    async generateWithTools(prompt: string, toolDefinitions: any[], ownerId?: string): Promise<
+        | { type: "text"; reply: string; canAnswer: boolean }
+        | { type: "tool_call"; name: string; args: Record<string, any> }
+        | null
+    > {
+        const modelName = "gemini-2.5-flash";
+        try {
+            const model = this.genAI.getGenerativeModel({
+                model: modelName,
+                tools: [{ functionDeclarations: toolDefinitions }],
+                generationConfig: { maxOutputTokens: 300, temperature: 0.5 },
+            });
+
+            const geminiRes = await model.generateContent(prompt);
+            const response = await geminiRes.response;
+            const candidate = response.candidates?.[0];
+            const part = candidate?.content?.parts?.[0];
+
+            // Check if the AI wants to call a tool
+            if (part?.functionCall) {
+                console.log(`[GeminiStrategy] Tool call requested: "${part.functionCall.name}"`);
+                return {
+                    type: "tool_call",
+                    name: part.functionCall.name,
+                    args: part.functionCall.args as Record<string, any>,
+                };
+            }
+
+            // Otherwise, it returned plain text — parse it normally
+            const rawText = response.text();
+            if (!rawText) return null;
+
+            const parsed = this.parseResponse(rawText);
+            return { type: "text", ...parsed };
+        } catch (error: any) {
+            console.error(`[GeminiStrategy] generateWithTools failed:`, error?.message || error);
+            return null;
+        }
+    }
+
     private parseResponse(rawReply: string): LLMResponse {
         let canAnswer = true;
         let reply = "";
