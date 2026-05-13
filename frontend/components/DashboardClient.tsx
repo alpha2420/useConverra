@@ -60,6 +60,7 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
 
     // Upload state
     const [uploadingPdf, setUploadingPdf] = useState(false)
+    const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
     const [refining, setRefining] = useState(false)
     
     // Test Bot state
@@ -368,6 +369,37 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
             setLoading(false);
         } finally {
             setUploadingPdf(false);
+            e.target.value = ''; // Reset input
+        }
+    }
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploadingPhoto(true);
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("name", file.name);
+
+        try {
+            const res = await axios.post("/api/upload-photo", formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+            if (res.data.success && res.data.url) {
+                const updatedLinks = [...mediaLinks, { name: file.name, url: res.data.url }];
+                setMediaLinks(updatedLinks);
+                
+                // Auto-save settings
+                await handleSettings({ ...buildSettingsPayload(), mediaLinks: updatedLinks });
+                setSaved(true);
+                setTimeout(() => setSaved(false), 3000);
+            }
+        } catch (err) {
+            console.error("Failed to upload photo", err);
+            alert("Failed to upload photo to Cloudinary");
+        } finally {
+            setIsUploadingPhoto(false);
             e.target.value = ''; // Reset input
         }
     }
@@ -925,6 +957,21 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
                                         >
                                             + Add Link
                                         </button>
+                                        <div className="relative">
+                                            <input 
+                                                type="file" 
+                                                accept="image/*" 
+                                                onChange={handlePhotoUpload} 
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                disabled={isUploadingPhoto}
+                                            />
+                                            <button 
+                                                disabled={isUploadingPhoto}
+                                                className='px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition whitespace-nowrap disabled:bg-blue-400'
+                                            >
+                                                {isUploadingPhoto ? "Uploading..." : "↑ Upload Photo"}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
