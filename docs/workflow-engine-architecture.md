@@ -26,3 +26,4 @@
 - Added details for: docs(engine): document true/false pathing in condition nodes
 - Added details for: docs(ui): explain premium monochrome aesthetic styling
 - Added details for: docs(engine): add notes on session authentication in workflow api
+- Added details for: docs(engine): finalize workflow engine architecture summary
