@@ -13,3 +13,4 @@
 - Added details for: docs(engine): add flow builder state management notes
 - Added details for: docs(engine): document fallback mechanism for standard chatbot
 - Added details for: docs(engine): specify trigger event enumerations
+- Added details for: docs(api): add GET /api/workflows endpoint specifications
