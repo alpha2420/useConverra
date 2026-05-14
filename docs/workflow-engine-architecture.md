@@ -20,3 +20,4 @@
 - Added details for: docs(ui): detail dynamic UI updates on node connection
 - Added details for: docs(engine): specify error handling in strategy execution
 - Added details for: docs(ai): document reason extraction from AI structured output
+- Added details for: docs(engine): add notes on linear node array processing
