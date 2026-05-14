@@ -24,3 +24,4 @@
 - Added details for: docs(engine): outline workflow activation flag toggling
 - Added details for: docs(worker): specify whatsapp message type guards for trigger interception
 - Added details for: docs(engine): document true/false pathing in condition nodes
+- Added details for: docs(ui): explain premium monochrome aesthetic styling
