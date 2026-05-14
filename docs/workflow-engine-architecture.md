@@ -9,3 +9,4 @@
 - Added details for: docs(engine): detail node factory rehydration logic
 - Added details for: docs(engine): outline polymorphic execute loop
 - Added details for: docs(testing): document end-to-end test script setup
+- Added details for: docs(ai): detail gemini-2.5-flash parameter tuning for deterministic routing
