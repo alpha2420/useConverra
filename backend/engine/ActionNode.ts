@@ -22,8 +22,15 @@ export class ActionNode extends WorkflowNode {
             const router = ToolRouter.getInstance();
             
             // Map context memory variables to tool parameters dynamically if needed
-            // (e.g. replacing "{{leadId}}" with actual memory data)
             const processedArgs = { ...this.parameters };
+
+            // Auto-inject contact info from triggerData so all tools have context
+            if (context.triggerData) {
+                if (context.triggerData.contactNumber) processedArgs.contactNumber = context.triggerData.contactNumber;
+                if (context.triggerData.contactName)   processedArgs.contactName   = context.triggerData.contactName;
+                if (context.triggerData.messageBody)   processedArgs.message       = processedArgs.message || context.triggerData.messageBody;
+            }
+
             if (context.memory.extractedData) {
                Object.assign(processedArgs, context.memory.extractedData);
             }

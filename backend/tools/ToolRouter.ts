@@ -3,6 +3,9 @@ import { CRMTool } from "./impl/CRMTool";
 import { TicketTool } from "./impl/TicketTool";
 import { VisitTool } from "./impl/VisitTool";
 import { ResourceTool } from "./impl/ResourceTool";
+import { SlackTool } from "./impl/SlackTool";
+import { GoogleSheetsTool } from "./impl/GoogleSheetsTool";
+import { WorkflowCRMTool } from "./impl/WorkflowCRMTool";
 
 /**
  * ToolRouter — Singleton Pattern
@@ -24,6 +27,10 @@ export class ToolRouter {
         this.register(new TicketTool());
         this.register(new VisitTool());
         this.register(new ResourceTool());
+        // Workflow Engine Tools
+        this.register(new SlackTool());
+        this.register(new GoogleSheetsTool());
+        this.register(new WorkflowCRMTool());
     }
 
     /** Singleton: returns a single shared instance */
