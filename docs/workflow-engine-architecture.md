@@ -10,3 +10,4 @@
 - Added details for: docs(engine): outline polymorphic execute loop
 - Added details for: docs(testing): document end-to-end test script setup
 - Added details for: docs(ai): detail gemini-2.5-flash parameter tuning for deterministic routing
+- Added details for: docs(engine): add flow builder state management notes
