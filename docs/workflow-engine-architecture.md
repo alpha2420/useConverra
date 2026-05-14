@@ -23,3 +23,4 @@
 - Added details for: docs(engine): add notes on linear node array processing
 - Added details for: docs(engine): outline workflow activation flag toggling
 - Added details for: docs(worker): specify whatsapp message type guards for trigger interception
+- Added details for: docs(engine): document true/false pathing in condition nodes
