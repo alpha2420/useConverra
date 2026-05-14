@@ -156,16 +156,44 @@ async function startClient(ownerId: string) {
             const chat = await msg.getChat();
             if (chat.isGroup) return;
 
-            // Guard: text only
+            const contactNumber = msg.from;
+            const contactName = chat.name || msg.from;
+
+            // ── Check for Custom Converra Workflows BEFORE Chatbot ──
+            let eventType = 'WHATSAPP_MESSAGE';
+            if (msg.type === 'image' || msg.hasMedia) eventType = 'IMAGE_UPLOAD';
+            else if (msg.type === 'ptt' || msg.type === 'audio') eventType = 'VOICE_NOTE';
+            else if (msg.type === 'document') eventType = 'PDF_UPLOAD';
+
+            const { Workflow } = await import('./models/workflow.model');
+            const activeWorkflows = await Workflow.find({ ownerId, triggerEvent: eventType, isActive: true }).lean();
+
+            if (activeWorkflows && activeWorkflows.length > 0) {
+                console.log(`[Worker] Found ${activeWorkflows.length} workflows for event ${eventType} for owner ${ownerId}`);
+                const { WorkflowEngine } = await import('./engine/WorkflowEngine');
+                
+                for (const wf of activeWorkflows) {
+                    // Pass the raw message data into the trigger context
+                    await WorkflowEngine.trigger(wf._id.toString(), {
+                        ownerId,
+                        contactNumber,
+                        contactName,
+                        messageBody: msg.body,
+                        type: msg.type,
+                    });
+                }
+
+                // We stop processing here because custom workflows take full precedence.
+                return;
+            }
+
+            // Guard: text only for standard chatbot pipeline
             if (msg.type !== 'chat') {
                 await msg.reply(
                     "Hi! I can't process voice notes or images right now. Please type your message so I can help you! 🙏"
                 );
                 return;
             }
-
-            const contactNumber = msg.from;
-            const contactName = chat.name || msg.from;
 
             // ── 1. Ensure Lead & Convo exist, and save incoming message ──
             const { conversation } = await ChatRepository.getOrCreateChat(ownerId, contactNumber, contactName);
