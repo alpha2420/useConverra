@@ -5,3 +5,4 @@
 - Added details for: docs(engine): specify action node tool execution contract
 - Added details for: docs(engine): outline webhook interception strategy in worker.ts
 - Added details for: docs(api): document workflow persistence schema
+- Added details for: docs(ui): explain framer-motion animations in flow builder
