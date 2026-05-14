@@ -6,3 +6,4 @@
 - Added details for: docs(engine): outline webhook interception strategy in worker.ts
 - Added details for: docs(api): document workflow persistence schema
 - Added details for: docs(ui): explain framer-motion animations in flow builder
+- Added details for: docs(engine): detail node factory rehydration logic
