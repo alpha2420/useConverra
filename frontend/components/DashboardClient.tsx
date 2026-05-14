@@ -12,6 +12,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import WorkflowBuilder from './WorkflowBuilder'
 
 interface UnansweredQuestion {
     _id: string;
@@ -482,11 +483,16 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
                     
                     {/* Middle: Navigation Links */}
                     <div className='hidden sm:flex absolute left-1/2 -translate-x-1/2 items-center gap-6 font-semibold text-[13px] text-gray-600 w-max'>
-                        <button className='hover:text-black transition' onClick={()=>navigate.push("/dashboard/analytics")}>Insights</button>
+                        <button className={`hover:text-black transition ${currentStep === 10 ? 'text-black' : ''}`} onClick={()=>navigate.push("/dashboard/analytics")}>Insights</button>
                         <button className='hover:text-black transition hidden md:block' onClick={()=>navigate.push("/dashboard/crm/play")}>Play Mode</button>
-                        <button className='hover:text-black transition' onClick={()=>navigate.push("/dashboard/crm")}>CRM</button>
-                        <button className='hover:text-black transition hidden lg:block' onClick={()=>navigate.push("/dashboard/agent-instructions")}>AI Rules</button>
-                        <button className='hover:text-black transition' onClick={()=>navigate.push("/dashboard/corrections")}>AI Learning</button>
+                        <button className={`hover:text-black transition ${currentStep === 8 ? 'text-black' : ''}`} onClick={()=>navigate.push("/dashboard/crm")}>CRM</button>
+                        <button 
+                            className={`hover:text-black transition font-bold ${currentStep === 7 ? 'text-black border-b-2 border-black' : ''}`} 
+                            onClick={() => setCurrentStep(7)}
+                        >
+                            Workflows
+                        </button>
+                        <button className={`hover:text-black transition ${currentStep === 9 ? 'text-black' : ''}`} onClick={()=>navigate.push("/dashboard/corrections")}>AI Learning</button>
                     </div>
 
                     {/* Right: User Info & Logout */}
@@ -1014,6 +1020,12 @@ function DashboardClient({ ownerId, userName, userEmail }: { ownerId: string, us
                                             </button>
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {currentStep === 7 && (
+                                <div className="mt-[-80px]">
+                                    <WorkflowBuilder />
                                 </div>
                             )}
                         </div>

@@ -104,7 +104,7 @@ export default function WorkflowBuilder() {
                 <div className="absolute top-1/2 right-[-10%] w-[600px] h-[600px] rounded-full opacity-30 blur-[100px]" style={{background: 'radial-gradient(circle, #d1d5db, transparent 70%)'}}></div>
             </div>
 
-            <div className="relative z-10 max-w-[900px] mx-auto px-6 pt-32">
+            <div className="relative z-10 max-w-[900px] mx-auto px-6 pt-10">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
                     <div>
