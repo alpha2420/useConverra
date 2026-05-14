@@ -17,3 +17,4 @@
 - Added details for: docs(api): add POST /api/workflows endpoint specifications
 - Added details for: docs(engine): document memory context passing between nodes
 - Added details for: docs(engine): outline future action tool integrations (slack, crm)
+- Added details for: docs(ui): detail dynamic UI updates on node connection
