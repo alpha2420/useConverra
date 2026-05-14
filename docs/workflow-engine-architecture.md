@@ -8,3 +8,4 @@
 - Added details for: docs(ui): explain framer-motion animations in flow builder
 - Added details for: docs(engine): detail node factory rehydration logic
 - Added details for: docs(engine): outline polymorphic execute loop
+- Added details for: docs(testing): document end-to-end test script setup
